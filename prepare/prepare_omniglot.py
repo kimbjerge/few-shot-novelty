@@ -9,8 +9,7 @@ import numpy as np
 import os
 import json
 
-DATA_PATH = "/home/don/easy-few-shot-learning/data"
-#DATA_PATH = "/IHAK/easy-few-shot-learning/data"
+DATA_PATH = "../data"
 
 # Find class identities
 train_classes = []
