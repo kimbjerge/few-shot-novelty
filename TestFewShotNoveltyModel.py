@@ -163,8 +163,8 @@ if __name__=='__main__':
         
    
     #%% Create model and prepare for training
-    DEVICE = "cuda"
-    #DEVICE = "cpu"
+    #DEVICE = "cuda"
+    DEVICE = "cpu"
     
     # model = resnet12(
     #     use_fc=True,

@@ -294,8 +294,8 @@ if __name__=='__main__':
     )
     
     #%% Create model and prepare for training
-    DEVICE = "cuda:1"
-    #DEVICE = "cpu"
+    #DEVICE = "cuda:1"
+    DEVICE = "cpu"
     
     num_classes = len(set(train_set.get_labels()))
     print("Training classes", num_classes)
