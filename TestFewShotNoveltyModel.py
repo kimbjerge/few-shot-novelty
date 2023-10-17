@@ -19,6 +19,8 @@ from torch.utils.data import DataLoader
 #from easyfsl.modules import resnet12
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
 from utilsNovelty import evaluate
+
+from easyfsl.modules import resnet12
 from easyfsl.methods import PrototypicalNetworks, RelationNetworks, MatchingNetworks, TransductiveFinetuning
 from easyfsl.methods import SimpleShot, Finetune, FEAT, BDCSPN, LaplacianShot, PTMAP, TIM
 from easyfsl.samplers import TaskSampler
@@ -68,7 +70,13 @@ CUBNoveltyAvgStd = {# avg, std
          'resnet18': [0.71100, 0.05190], 
          'resnet34': [0.71902, 0.05467], 
          'resnet50': [0.76377, 0.04995]  
-         } 
+         }
+OmniglotNoveltyAvgStd = {# avg, std
+         'resnet12': [0.71100, 0.05190],
+         'resnet18': [0.71100, 0.05190], 
+         'resnet34': [0.71902, 0.05467], 
+         'resnet50': [0.76377, 0.04995]  
+         }  
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
                   novelty_th, use_novelty, learn_th, n_workers, DEVICE):
@@ -96,6 +104,9 @@ def getLearnedThreshold(weightsName, modelName, n_shot):
         avg = ImageNetNoveltyAvgStd[modelName][0]
         std = ImageNetNoveltyAvgStd[modelName][1]
         #novelty_th = ImageNetNoveltyTh[modelName]
+    if weightsName == 'Omniglot':
+        avg = OmniglotNoveltyAvgStd[modelName][0]
+        std = OmniglotNoveltyAvgStd[modelName][1]
     if weightsName == 'euMoths':
         avg = euMothsNoveltyAvgStd[modelName][0]
         std = euMothsNoveltyAvgStd[modelName][1]
@@ -113,9 +124,12 @@ def getLearnedThreshold(weightsName, modelName, n_shot):
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet18') #resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='ImageNet') #ImageNet, euMoths, CUB
-    parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB
+    #parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    #parser.add_argument('--weights', default='ImageNet') #ImageNet, euMoths, CUB, Omniglot
+    #parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int)
@@ -127,6 +141,7 @@ if __name__=='__main__':
     dataDirMiniImageNet = "./data/mini_imagenet"
     dataDirEuMoths = "./data/euMoths"
     dataDirCUB = "./data/CUB"
+    dataDirOmniglot = "./data/Omniglot"
     subDir = ""
 
     if args.learning:
@@ -134,7 +149,12 @@ if __name__=='__main__':
         
     #image_size = 28 # Omniglot
     #image_size = 84 # CUB dataset
-    image_size = 224 # ResNet euMoths
+
+    if args.model == 'resnet12':
+        image_size = 28 # Omniglot dataset
+    else:
+        image_size = 224 # ResNet euMoths
+
     #image_size = 300 # EfficientNet B3
     #image_size = 380 # EfficientNet B4
     #image_size = 600 # EfficientNet B7
@@ -155,6 +175,8 @@ if __name__=='__main__':
     num_classes = 100  
     if args.weights == 'CUB':
         num_classes = 140  
+    if args.weights == 'Omniglot':
+        num_classes = 3856  
         
     if args.learning:
         n_test_tasks = 50 # 50 learning on validation
@@ -163,8 +185,8 @@ if __name__=='__main__':
         
    
     #%% Create model and prepare for training
-    #DEVICE = "cuda"
-    DEVICE = "cpu"
+    DEVICE = "cuda"
+    #DEVICE = "cpu"
     
     # model = resnet12(
     #     use_fc=True,
@@ -188,6 +210,11 @@ if __name__=='__main__':
         ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
         modelName = "./models/Resnet18_"+args.weights+"_model.pth"
         feat_dim = 512
+    if args.model == 'resnet12':
+        print('resnet12')
+        ResNetModel = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
+        modelName = "./models/Resnet12_"+args.weights+"_classic.pth" #"_model.pth"
+        feat_dim = 512
 
     model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
     
@@ -198,6 +225,7 @@ if __name__=='__main__':
     else:
         print('Using saved model weights', modelName)
         modelSaved = torch.load(modelName, map_location=torch.device(DEVICE))
+        #ResNetModel.load_state_dict(modelSaved.state_dict())
         model.load_state_dict(modelSaved.state_dict())
         subDir = args.weights + '/'
         if os.path.exists(resDir+subDir) == False:
@@ -224,6 +252,13 @@ if __name__=='__main__':
                              ["TIM", TIM(model)]
                             ]
     
+    if args.dataset == 'Omniglot':
+        if args.learning:       
+            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirOmniglot, training=False)
+            print("Omniglot Val dataset")
+        else:
+            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirOmniglot, training=False)
+            print("Omniglot Test dataset")
     if args.dataset == 'euMoths':
         #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirEuMoths,training=False)
         if args.learning:

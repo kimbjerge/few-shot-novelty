@@ -214,7 +214,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
     parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot
-    parser.add_argument('--mode', default='episodic') #classic, episodic
+    parser.add_argument('--mode', default='classic') #classic, episodic
     parser.add_argument('--cosine', default='True', type=bool) # Default use Euclidian distance when no parameter ''
     parser.add_argument('--epochs', default=1, type=int) #epochs
     args = parser.parse_args()
@@ -294,8 +294,8 @@ if __name__=='__main__':
     )
     
     #%% Create model and prepare for training
-    #DEVICE = "cuda:1"
-    DEVICE = "cpu"
+    DEVICE = "cuda:1"
+    #DEVICE = "cpu"
     
     num_classes = len(set(train_set.get_labels()))
     print("Training classes", num_classes)
@@ -310,21 +310,21 @@ if __name__=='__main__':
     if args.model == 'resnet50':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
-        NetModel = resnet50(pretrained=True)    
+        NetModel = resnet50(pretrained=True).to(DEVICE)    
         modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + ".pth"
         model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
-        NetModel = resnet34(pretrained=True)
+        NetModel = resnet34(pretrained=True).to(DEVICE)
         modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + ".pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
-        NetModel = resnet18(pretrained=True) 
+        NetModel = resnet18(pretrained=True).to(DEVICE) 
         modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + ".pth"
         model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
         
@@ -332,7 +332,8 @@ if __name__=='__main__':
         print('resnet12')
         modelName = "./models/Resnet12_" + args.dataset + '_' + args.mode + ".pth"  
         # This model is not retrained, but trained from scratch
-        model = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
+        NetModel = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
+        model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
         
     model = model.to(DEVICE)
     print("Saving model as", modelName)
