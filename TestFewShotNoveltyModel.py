@@ -72,10 +72,10 @@ CUBNoveltyAvgStd = {# avg, std
          'resnet50': [0.76377, 0.04995]  
          }
 OmniglotNoveltyAvgStd = {# avg, std
-         'resnet12': [0.71100, 0.05190],
-         'resnet18': [0.71100, 0.05190], 
-         'resnet34': [0.71902, 0.05467], 
-         'resnet50': [0.76377, 0.04995]  
+         'resnet12': [0.87853, 0.09809]
+         #'resnet18': [0.71100, 0.05190], # NA
+         #'resnet34': [0.71902, 0.05467], # NA 
+         #'resnet50': [0.76377, 0.04995]  # NA 
          }  
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
@@ -132,7 +132,7 @@ if __name__=='__main__':
     parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
-    parser.add_argument('--shot', default=5, type=int)
+    parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     args = parser.parse_args()
@@ -197,26 +197,27 @@ if __name__=='__main__':
         print('resnet50')
         #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
         ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         modelName = "./models/Resnet50_"+args.weights+"_model.pth"
         feat_dim = 2048
     if args.model == 'resnet34':
         print('resnet34')
         ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         modelName = "./models/Resnet34_"+args.weights+"_model.pth"
         feat_dim = 512
     if args.model == 'resnet18':
         print('resnet18')
         #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
         ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         modelName = "./models/Resnet18_"+args.weights+"_model.pth"
         feat_dim = 512
     if args.model == 'resnet12':
         print('resnet12')
-        ResNetModel = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
+        model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
         modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth"
         feat_dim = 64
-
-    model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
     
     #modelName = "./models/Resnet18_euMoths_state.pth"
     #model.load_state_dict(torch.load(modelName))

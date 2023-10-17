@@ -332,8 +332,7 @@ if __name__=='__main__':
         print('resnet12')
         modelName = "./models/Resnet12_" + args.dataset + '_' + args.mode + ".pth"  
         # This model is not retrained, but trained from scratch
-        NetModel = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
-        model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
+        model = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
         
     model = model.to(DEVICE)
     print("Saving model as", modelName)
