@@ -52,13 +52,14 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
         for images, labels in tqdm_train:
             optimizer.zero_grad()
 
-            loss = entropyLossFunction(model_(images.to(DEVICE)), labels.to(DEVICE))
+            predictions = model_(images.to(DEVICE))
+            loss = entropyLossFunction(predictions, labels.to(DEVICE))
             loss.backward()
             optimizer.step()
 
             all_loss.append(loss.item())
 
-            tqdm_train.set_postfix(loss=mean(all_loss))
+            tqdm_train.set_postfix(loss="{}".format(mean(all_loss)))
 
     return mean(all_loss)
 
@@ -67,7 +68,8 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
 
     scheduler_milestones = [3, 6]
     scheduler_gamma = 0.1
-    learning_rate = 1e-1 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
+    learning_rate = 5e-4 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
+    #learning_rate = 0.1 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
     tb_logs_dir = Path("./logs")
    
     entropyLossFunction = nn.CrossEntropyLoss()
@@ -212,10 +214,10 @@ def test(model, test_loader, few_shot_classifier, n_workers, DEVICE):
 if __name__=='__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
-    parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet18') #resnet12, resnet18, resnet34, resnet50
+    parser.add_argument('--dataset', default='CUB') #euMoths, CUB, Omniglot
     parser.add_argument('--mode', default='classic') #classic, episodic
-    parser.add_argument('--cosine', default='True', type=bool) # Default use Euclidian distance when no parameter ''
+    parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
     parser.add_argument('--epochs', default=1, type=int) #epochs
     args = parser.parse_args()
        
