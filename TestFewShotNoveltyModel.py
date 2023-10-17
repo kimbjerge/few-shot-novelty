@@ -213,8 +213,8 @@ if __name__=='__main__':
     if args.model == 'resnet12':
         print('resnet12')
         ResNetModel = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
-        modelName = "./models/Resnet12_"+args.weights+"_classic.pth" #"_model.pth"
-        feat_dim = 512
+        modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth"
+        feat_dim = 64
 
     model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
     
