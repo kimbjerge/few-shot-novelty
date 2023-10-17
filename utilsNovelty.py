@@ -287,6 +287,7 @@ def evaluate_on_one_task(
             (minDistIdx == query_labels).sum().item()
         )
     else:
+        predictions = predictions.to(device)
         number_of_correct_predictions = (
             (torch.max(predictions, 1)[1] == query_labels).sum().item()
         )
