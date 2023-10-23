@@ -55,7 +55,7 @@ CUBNoveltyTh = {    # CPU     GPU ????
         } 
 """
 
-# Learned avg and std on validation dataset with 1-shot
+# Learned avg and std on validation dataset with 1-shot and 6-way
 ImageNetNoveltyAvgStd = {# avg, std
          'resnet18': [0.72226, 0.07111], 
          'resnet34': [0.73021, 0.07541], 
@@ -89,13 +89,13 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
         collate_fn=test_sampler.episodic_collate_fn,
     )
     
-    accuracy, learned_th = evaluate(few_shot_classifier, test_loader, 
-                                    novelty_th, 
-                                    use_novelty=use_novelty, 
-                                    learn_th=learn_th, 
-                                    device=DEVICE, tqdm_prefix="Test")
+    accuracy, learned_th, avg, std = evaluate(few_shot_classifier, test_loader, 
+                                              novelty_th, 
+                                              use_novelty=use_novelty, 
+                                              learn_th=learn_th, 
+                                              device=DEVICE, tqdm_prefix="Test")
     print(f"Average accuracy : {(100 * accuracy):.2f} %")
-    return accuracy, learned_th
+    return accuracy, learned_th, avg, std
 
 def getLearnedThreshold(weightsName, modelName, n_shot):
     
@@ -124,14 +124,14 @@ def getLearnedThreshold(weightsName, modelName, n_shot):
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    #parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    #parser.add_argument('--weights', default='ImageNet') #ImageNet, euMoths, CUB, Omniglot
-    #parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='CUB') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='CUB') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter
-    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
@@ -185,8 +185,8 @@ if __name__=='__main__':
         
    
     #%% Create model and prepare for training
-    DEVICE = "cuda"
-    #DEVICE = "cpu"
+    #DEVICE = "cuda"
+    DEVICE = "cpu"
     
     # model = resnet12(
     #     use_fc=True,
@@ -245,12 +245,12 @@ if __name__=='__main__':
                              #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                              #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
                              #["SimpleShot", SimpleShot(model)], No - too simple
-                             ["Finetune", Finetune(model)], 
+                            #["Finetune", Finetune(model)], 
                              # #["FEAT", FEAT(model)], 
-                             ["BD-CSPN", BDCSPN(model)], 
+                            #["BD-CSPN", BDCSPN(model)], 
                              #["LaplacianShot", LaplacianShot(model)], No - special
                              # #["PT-MAP", PTMAP(model)], No
-                             ["TIM", TIM(model)]
+                            #["TIM", TIM(model)]
                             ]
     
     if args.dataset == 'Omniglot':
@@ -292,23 +292,24 @@ if __name__=='__main__':
     
     #test(model, test_set, test_sampler, few_shot_classifier, n_workers)
     if args.learning:     
-        resFileName = args.dataset + '_' + args.model + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_learn.txt"
+        resFileName = args.dataset + '_' + args.model + "_novelty_learn.txt"
+        resFile = open(resDir+subDir+resFileName, "a")
     else:
         resFileName = args.dataset + '_' + args.model + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
+        resFile = open(resDir+subDir+resFileName, "w")
         
     novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
 
-    resFile = open(resDir+subDir+resFileName, "w")
-    line = "FewShotClassifier,Accuracy,Threshold\n"
+    line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold,Average,Std\n"
     resFile.write(line)   
     for few_shot in few_shot_classifiers:
         print(few_shot[0])
         print("Use softmax", few_shot[1].use_softmax)
         few_shot_classifier = few_shot[1].to(DEVICE)
-        accuracy, threshold = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                            novelty_th, args.novelty, args.learning, 
-                                            n_workers, DEVICE)
-        line = few_shot[0] + ',' + str(accuracy) + ',' + str(threshold) + '\n'
+        accuracy, threshold, avg, std = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                      novelty_th, args.novelty, args.learning, 
+                                                      n_workers, DEVICE)
+        line = few_shot[0] + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + '\n'
         resFile.write(line)    
     resFile.close()
     print("Result saved to", resFileName)

@@ -369,6 +369,9 @@ def evaluate(
                 # Log accuracy in real time
                 tqdm_eval.set_postfix(accuracy=correct_predictions / total_predictions)
 
+    learned_th = novelty_th
+    mu = 0
+    sigma = 0
     if learn_th: 
         mu = np.mean(predictions_true)
         sigma =  np.std(predictions_true)
@@ -387,16 +390,14 @@ def evaluate(
             listTh = [th for i in range(steps)]
             listPb = [step*i for i in range(steps)]
             plt.plot(listTh, listPb, 'r')
-            plt.xlabel('True Positive (Normalized Correlation)')
-            plt.ylabel('Probability')
+            plt.xlabel('True Positive (Cosine Similarity)')
+            plt.ylabel('Probability (%)')
             plt.title('Histogram of TP (>%.4f)' % (th))
             # Tweak spacing to prevent clipping of ylabel
             plt.subplots_adjust(left=0.15)
             plt.show()
-    else:
-        learned_th = novelty_th
         
-    return correct_predictions / total_predictions, learned_th
+    return correct_predictions / total_predictions, learned_th, mu, sigma
 
 
 def compute_average_features_from_images(
