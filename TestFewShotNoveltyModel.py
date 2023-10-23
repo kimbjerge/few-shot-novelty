@@ -133,7 +133,7 @@ if __name__=='__main__':
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter
     parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=30, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     args = parser.parse_args()
   
