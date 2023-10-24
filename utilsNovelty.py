@@ -251,6 +251,7 @@ def evaluate_V2(
 
 
 predictions_true = [] # Used during learning the thredshold for outlier detection
+predictions_false = []
 
 def evaluate_on_one_task(
     model: FewShotClassifier,
@@ -273,6 +274,8 @@ def evaluate_on_one_task(
 
     if learn_th:
         correct_max_predictions = predictions[torch.max(predictions, 1)[1] == query_labels].max(1)[0]
+        wrong_predictions = predictions[torch.max(predictions, 1)[1] != query_labels].reshape(-1)
+        predictions_false.extend(wrong_predictions.tolist())
         predictions_true.extend(correct_max_predictions.tolist())
 
     if use_novelty:
@@ -379,7 +382,8 @@ def evaluate(
         learned_th = th
         if plt_hist:
             # Plot the histogram of true prediction values
-            plt.hist(predictions_true, bins=100, density=True, alpha=0.6, color='b')
+            plt.hist(predictions_true, bins=100, density=True, alpha=0.5, color='b')
+            plt.hist(predictions_false, bins=100, density=True, alpha=0.5, color='r')
             xmin, xmax = plt.xlim() 
             x = np.linspace(xmin, xmax, 100) 
             # add a 'best fit' line
@@ -390,9 +394,10 @@ def evaluate(
             listTh = [th for i in range(steps)]
             listPb = [step*i for i in range(steps)]
             plt.plot(listTh, listPb, 'r')
-            plt.xlabel('True Positive (Cosine Similarity)')
+            #plt.xlabel('True Positive (Cosine Similarity)')
+            plt.xlabel('Cosine Similarity')
             plt.ylabel('Probability (%)')
-            plt.title('Histogram of TP (>%.4f)' % (th))
+            plt.title('Histogram of TN (red) and TP (blue) (th>%.4f)' % (th))
             # Tweak spacing to prevent clipping of ylabel
             plt.subplots_adjust(left=0.15)
             plt.show()
