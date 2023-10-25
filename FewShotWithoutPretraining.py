@@ -261,7 +261,7 @@ if __name__=='__main__':
     n_workers = 6
  
     n_way = 5
-    n_shot = 1 # Use 3 shot for validation
+    n_shot = 5 # Use 3 shot for validation, for episodic training use 5 shot
     n_query = 6
     n_tasks_per_epoch = 50
     n_validation_tasks = 30
