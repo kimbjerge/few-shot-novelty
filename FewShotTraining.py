@@ -64,7 +64,7 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
     return mean(all_loss)
 
 
-def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  n_epochs=200):
+def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  n_epochs=10):
 
     scheduler_milestones = [3, 6]
     scheduler_gamma = 0.1
@@ -207,7 +207,8 @@ def test(model, test_loader, few_shot_classifier, n_workers, DEVICE):
     model.eval()
 
     accuracy = evaluate(few_shot_classifier, test_loader, device=DEVICE, tqdm_prefix="Test")
-    print(f"Average accuracy : {(100 * accuracy):.2f} %")
+    
+    return accuracy
 
 
 #%% MAIN
@@ -247,11 +248,11 @@ if __name__=='__main__':
     torch.backends.cudnn.benchmark = False
     
     #batch_size = 256
-    batch_size = 128
+    batch_size = 256
     n_workers = 6
  
     n_way = 5
-    n_shot = 3 # Use 2 shot for validation
+    n_shot = 1 # Use 3 shot for validation
     n_query = 6
     n_tasks_per_epoch = 20
     n_validation_tasks = 100
@@ -314,21 +315,21 @@ if __name__=='__main__':
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
         NetModel = resnet50(pretrained=True).to(DEVICE)    
         modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + ".pth"
-        model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
         NetModel = resnet34(pretrained=True).to(DEVICE)
         modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + ".pth"   
-        model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
         NetModel = resnet18(pretrained=True).to(DEVICE) 
         modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + ".pth"
-        model = EmbeddingsModel(NetModel, num_classes, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet12':
         print('resnet12')
@@ -368,5 +369,9 @@ if __name__=='__main__':
         pin_memory=True,
         collate_fn=test_sampler.episodic_collate_fn,
     )
-    test(model, test_loader, few_shot_classifier, n_workers, DEVICE)
+    accuracy = test(model, test_loader, few_shot_classifier, n_workers, DEVICE)
     
+    textLine = f"Average accuracy : {(100 * accuracy):.2f} % " + args.model + " " + args.dataset + '\n'
+    print(textLine)
+    with open('result.txt', 'a') as f:
+        f.write(textLine)
