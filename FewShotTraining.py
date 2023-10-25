@@ -248,7 +248,7 @@ if __name__=='__main__':
     torch.backends.cudnn.benchmark = False
     
     #batch_size = 256
-    batch_size = 256
+    batch_size = 128
     n_workers = 6
  
     n_way = 5
@@ -314,21 +314,21 @@ if __name__=='__main__':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
         NetModel = resnet50(pretrained=True).to(DEVICE)    
-        modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + ".pth"
+        modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + "_pretrained.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
         NetModel = resnet34(pretrained=True).to(DEVICE)
-        modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + ".pth"   
+        modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + "_pretrained.pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
         NetModel = resnet18(pretrained=True).to(DEVICE) 
-        modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + ".pth"
+        modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + "_pretrained.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet12':
@@ -373,5 +373,5 @@ if __name__=='__main__':
     
     textLine = f"Average accuracy : {(100 * accuracy):.2f} % " + args.model + " " + args.dataset + '\n'
     print(textLine)
-    with open('result.txt', 'a') as f:
+    with open('ResultPretrain.txt', 'a') as f:
         f.write(textLine)
