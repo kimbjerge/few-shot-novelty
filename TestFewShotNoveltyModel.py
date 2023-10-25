@@ -124,16 +124,16 @@ def getLearnedThreshold(weightsName, modelName, n_shot):
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='CUB') #ImageNet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='CUB') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='euMoths') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
     # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter
-    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
+    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=30, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     args = parser.parse_args()
   
@@ -237,21 +237,26 @@ if __name__=='__main__':
     model = model.to(DEVICE)
 
     #few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
- 
-    few_shot_classifiers =  [ 
-                             # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                             ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)],
-                             #["PrototypicalNetworks", PrototypicalNetworks(model)], No
-                             #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
-                             #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
-                             #["SimpleShot", SimpleShot(model)], No - too simple
-                            #["Finetune", Finetune(model)], 
-                             # #["FEAT", FEAT(model)], 
-                            #["BD-CSPN", BDCSPN(model)], 
-                             #["LaplacianShot", LaplacianShot(model)], No - special
-                             # #["PT-MAP", PTMAP(model)], No
-                            #["TIM", TIM(model)]
-                            ]
+    
+    if args.learning:
+        few_shot_classifiers =  [ 
+                                 ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)]
+                                ]
+    else:
+        few_shot_classifiers =  [ 
+                                 # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
+                                 ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)],
+                                 #["PrototypicalNetworks", PrototypicalNetworks(model)], No
+                                 #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
+                                 #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
+                                 #["SimpleShot", SimpleShot(model)], No - too simple
+                                 ["Finetune", Finetune(model)], 
+                                 # #["FEAT", FEAT(model)], - error few-shot and novelty
+                                 ["BD-CSPN", BDCSPN(model)], 
+                                 #["LaplacianShot", LaplacianShot(model)], No - special
+                                 # #["PT-MAP", PTMAP(model)], No
+                                 ["TIM", TIM(model)]
+                                ]
     
     if args.dataset == 'Omniglot':
         if args.learning:       
