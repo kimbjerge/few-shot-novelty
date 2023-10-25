@@ -218,8 +218,10 @@ if __name__=='__main__':
     parser.add_argument('--model', default='resnet18') #resnet12, resnet18, resnet34, resnet50
     parser.add_argument('--dataset', default='CUB') #euMoths, CUB, Omniglot
     parser.add_argument('--mode', default='classic') #classic, episodic
+    parser.add_argument('--softmax', default='', type=bool) # Default don't use softmax when no parameter ''
     parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=1, type=int) #epochs
+    parser.add_argument('--epochs', default=1, type=int) # epochs
+    parser.add_argument('--shot', default=3, type=int) # number of shots for validation, episodic use 5
     args = parser.parse_args()
        
     dataDir = './data/' + args.dataset
@@ -252,7 +254,7 @@ if __name__=='__main__':
     n_workers = 6
  
     n_way = 5
-    n_shot = 1 # Use 3 shot for validation
+    n_shot = args.shot # Use 3 shot for validation euMoths, 1 shot CUB dataset
     n_query = 6
     n_tasks_per_epoch = 20
     n_validation_tasks = 100
@@ -315,21 +317,21 @@ if __name__=='__main__':
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
         NetModel = resnet50(pretrained=True).to(DEVICE)    
         modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + "_pretrained.pth"
-        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=args.softmax, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
         NetModel = resnet34(pretrained=True).to(DEVICE)
         modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + "_pretrained.pth"   
-        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=args.softmax, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
         NetModel = resnet18(pretrained=True).to(DEVICE) 
         modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + "_pretrained.pth"
-        model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
+        model = EmbeddingsModel(NetModel, num_classes, use_softmax=args.softmax, use_fc=n_use_fc)
         
     if args.model == 'resnet12':
         print('resnet12')
