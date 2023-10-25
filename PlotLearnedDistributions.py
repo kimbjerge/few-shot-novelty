@@ -27,7 +27,8 @@ def calculate_r_squared(x, y, popt):
 if __name__=='__main__':
     
     
-    learned_distribution_resnet18_CUB = pd.read_csv("CUB_resnet18_novelty_learn.txt")
+    #learned_distribution_resnet18_CUB = pd.read_csv("CUB_resnet18_novelty_learn_6way.txt")
+    learned_distribution_resnet18_CUB = pd.read_csv("CUB_resnet18_novelty_learn_5way.txt")
     
     # Plot average and learned threshold vs. Few Shot
     ax = plt.gca()
