@@ -196,7 +196,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,  n_e
             best_validation_accuracy = validation_accuracy
             best_state = few_shot_classifier.state_dict()
             print("Ding ding ding! We found a new best model!")
-            torch.save(few_shot_classifier, modelName)
+            torch.save(few_shot_classifier.backbone, modelName)
             print("Best model saved", modelName)
     
         tb_writer.add_scalar("Train/loss", average_loss, epoch)
@@ -360,12 +360,13 @@ if __name__=='__main__':
         print("Classic training epochs", n_epochs)
         best_state, model = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
         model.set_use_fc(False)       
+        model.load_state_dict(best_state)
 
     if args.mode == 'episodic':
         print("Episodic training epochs", n_epochs)
         best_state, model = episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
+        few_shot_classifier.load_state_dict(best_state)
     
-    model.load_state_dict(best_state)
     
     test_set = FewShotDataset(split="test", image_size=image_size, root=dataDir, training=False)
     test_sampler = TaskSampler(
