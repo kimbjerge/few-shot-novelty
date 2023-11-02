@@ -8,6 +8,7 @@ Created on Sat Sep 23 09:31:32 2023
 import os
 import random
 import numpy as np
+import pandas as pd
 import torch
 import argparse
 #from torch import nn
@@ -32,8 +33,8 @@ from torchvision.models import resnet50 #, ResNet50_Weights
 from torchvision.models import resnet34 #, ResNet34_Weights
 from torchvision.models import resnet18 #, ResNet18_Weights
 
-#modelPth = "_model.pth" # First model trained classic and pretrained weights
-modelPth = "_classic_pretrained.pth" # Improved models with pretrained weights and classic training
+modelPth = "_model" # First model trained classic and pretrained weights
+#modelPth = "_classic_pretrained" # Improved models with pretrained weights and classic training
 
 def load_model(argsModel, argsWeights):
 
@@ -42,20 +43,20 @@ def load_model(argsModel, argsWeights):
         #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
         ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet50_"+argsWeights+modelPth
+        modelName = "./models/Resnet50_"+argsWeights+modelPth+".pth"
         feat_dim = 2048
     if argsModel == 'resnet34':
         print('resnet34')
         ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet34_"+argsWeights+modelPth
+        modelName = "./models/Resnet34_"+argsWeights+modelPth+".pth"
         feat_dim = 512
     if argsModel == 'resnet18':
         print('resnet18')
         #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
         ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet18_"+argsWeights+modelPth
+        modelName = "./models/Resnet18_"+argsWeights+modelPth+".pth"
         feat_dim = 512
     if argsModel == 'resnet12':
         print('resnet12')
@@ -120,6 +121,22 @@ def load_test_dataset(argsDataset, argsLearning):
     return test_set
 
 
+def get_threshold_learned(argsDataset, argsModel, nameNoveltyLearned, n_shot, useBayesThreshold=True):
+    
+    noveltyLearnedFile = "./learned/" + argsDataset + '_' + argsModel + nameNoveltyLearned + '.csv'
+    print(noveltyLearnedFile)
+    
+    df = pd.read_csv(noveltyLearnedFile)
+    
+    df = df.loc[df['Shot'] == n_shot]
+    
+    if useBayesThreshold:
+        threshold = df['BayesThreshold'].to_numpy()[0]
+    else:
+        threshold = StdTimesTwoThredshold(df['Average'].to_numpy()[0], df['Std'].to_numpy()[0])
+        
+    return threshold
+
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
                   novelty_th, use_novelty, learn_th, n_workers, DEVICE):
 
@@ -153,8 +170,9 @@ if __name__=='__main__':
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
+    parser.add_argument('--threshold', default='std') # bayes or std threshold to be used
     args = parser.parse_args()
   
     resDir = "./result/"
@@ -166,6 +184,7 @@ if __name__=='__main__':
 
     if args.learning:
         args.novelty = False # Novelty detection is disabled during learning threshold
+        args.way = 5 # Use 5 way during learning of threshold values
         
     #image_size = 28 # Omniglot
     #image_size = 84 # CUB dataset
@@ -201,7 +220,7 @@ if __name__=='__main__':
     if args.learning:
         n_test_tasks = 50 # 50 learning on validation
     else:
-        n_test_tasks = 500 # 500 test
+        n_test_tasks = 100 # 500 test
         
    
     #%% Create model and prepare for training
@@ -242,19 +261,20 @@ if __name__=='__main__':
     
     #test(model, test_set, test_sampler, few_shot_classifier, n_workers)
     if args.learning:     
-        resFileName = args.dataset + '_' + args.model + "_novelty_learned.txt"
+        resFileName = args.dataset + '_' + args.model + "_novelty_learned.csv"
         resFile = open(resDir+subDir+resFileName, "a")
         
         few_shot = few_shot_classifiers[0]
         print(few_shot[0])
         few_shot_classifier = few_shot[1].to(DEVICE)
-        novelty_th = 0.5
+        novelty_th = 0.5 # not used
 
         line = "FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier\n"
         print(line)
         resFile.write(line)   
         
-        for n_shot in [1,2,3,4,5,6,7,8,9]: # Learn distribution for each shot in range 1-9
+        #for n_shot in [1,2,3,4,5,6,7,8,9]: # Learn distribution for each shot in range 1-9
+        for n_shot in [1,2,3,4,5]: # Learn distribution for each shot in range 1-9
         
             test_sampler = TaskSampler(
                 test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
@@ -272,14 +292,15 @@ if __name__=='__main__':
         print("Result saved to", resFileName)
             
     else: #Testing
-        resFileName = args.dataset + '_' + args.model + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
+        resFileName = args.dataset + '_' + args.model + '_' + args.threshold + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         resFile = open(resDir+subDir+resFileName, "w")
 
         test_sampler = TaskSampler(
             test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
         )
         
-        novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
+        novelty_th = getLearnedThreshold(args.weights, args.model, args.shot) # Old method 
+        #novelty_th = get_threshold_learned(args.weights, args.model, modelPth+'_novelty_learned', n_shot, useBayesThreshold=(args.threshold == 'bayes'))
     
         line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold,Average,Std\n"
         resFile.write(line)   
