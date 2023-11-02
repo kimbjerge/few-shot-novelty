@@ -225,7 +225,7 @@ if __name__=='__main__':
     if args.learning:
         n_test_tasks = 50 # 50 learning on validation
     else:
-        n_test_tasks = 10 # 500 test
+        n_test_tasks = 200 # 500 test
         
     #%% Create model and prepare for training
     #DEVICE = "cuda"
@@ -314,7 +314,7 @@ if __name__=='__main__':
     
         #resFileName = args.model + '_' + args.dataset + '_' + args.threshold + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         if args.novelty:
-            resFileName = args.model + '_' + args.dataset + '_' + args.threshold + "_novelty.txt" # With novelty detection
+            resFileName = args.model + '_' + args.dataset + "_novelty.txt" # With novelty detection
         else:
             resFileName = args.model + '_' + args.dataset + "_few_shot.txt" # Normal few-shot learning
             
@@ -322,7 +322,7 @@ if __name__=='__main__':
             resFile = open(resDir+subDir+resFileName, "a") # Append to existing result file
         else:
             resFile = open(resDir+subDir+resFileName, "w") # Create new result file with header           
-            line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold\n"
+            line = "FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold\n"
             resFile.write(line)   
             
         for few_shot in few_shot_classifiers:
@@ -332,7 +332,7 @@ if __name__=='__main__':
             accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                         novelty_th, args.novelty, args.learning, 
                                                                         n_workers, DEVICE)
-            line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + str(threshold) + '\n'
+            line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + args.threshold + ',' + str(threshold) + '\n'
             resFile.write(line)    
         resFile.close()
         print("Result saved to", resFileName)
