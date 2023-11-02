@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 #from easyfsl.modules import resnet12
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
 from utilsNovelty import evaluate
+from NoveltyThreshold import getLearnedThreshold, BayesTwoClassThreshold, StdTimesTwoThredshold
 
 from easyfsl.modules import resnet12
 from easyfsl.methods import PrototypicalNetworks, RelationNetworks, MatchingNetworks, TransductiveFinetuning
@@ -31,52 +32,91 @@ from torchvision.models import resnet50 #, ResNet50_Weights
 from torchvision.models import resnet34 #, ResNet34_Weights
 from torchvision.models import resnet18 #, ResNet18_Weights
 
-"""
-ImageNetNoveltyTh = {# CPU
-        'resnet18': 0.6972,
-        'resnet34': 0.6974,
-        'resnet50': 0.6196  # 0.7287 5 shot
-        }
-ImageNetNoveltyThGPU = {# GPU other default weights than CPU???
-        'resnet18': 0.8088,
-        'resnet34': 0.8115,
-        'resnet50': 0.8468
-        }
 
-euMothsNoveltyTh = {# GPU     CPU
-        'resnet18': 0.7580,   #0.7582
-        'resnet34': 0.7537,   #0.7593
-        'resnet50': 0.7948,   #0.7932
-        } 
-CUBNoveltyTh = {    # CPU     GPU ????
-        'resnet18': 0.7189,   #0.8128
-        'resnet34': 0.7146,   #0.8194
-        'resnet50': 0.7581    #0.8471
-        } 
-"""
+def load_model(argsModel, argsWeights):
 
-# Learned avg and std on validation dataset with 1-shot and 6-way
-ImageNetNoveltyAvgStd = {# avg, std
-         'resnet18': [0.72226, 0.07111], 
-         'resnet34': [0.73021, 0.07541], 
-         'resnet50': [0.76526, 0.07281]  # Th 0.6196 1 shot, TH 0.7287 5 shot
-         } 
-euMothsNoveltyAvgStd = {# avg, std
-         'resnet18': [0.77879, 0.05930], 
-         'resnet34': [0.77685, 0.06190], 
-         'resnet50': [0.80555, 0.05177]  
-         } 
-CUBNoveltyAvgStd = {# avg, std
-         'resnet18': [0.71100, 0.05190], 
-         'resnet34': [0.71902, 0.05467], 
-         'resnet50': [0.76377, 0.04995]  
-         }
-OmniglotNoveltyAvgStd = {# avg, std
-         'resnet12': [0.87853, 0.09809]
-         #'resnet18': [0.71100, 0.05190], # NA
-         #'resnet34': [0.71902, 0.05467], # NA 
-         #'resnet50': [0.76377, 0.04995]  # NA 
-         }  
+    if argsModel == 'resnet50':
+        print('resnet50')
+        #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
+        ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
+        modelName = "./models/Resnet50_"+argsWeights+"_model.pth"
+        feat_dim = 2048
+    if argsModel == 'resnet34':
+        print('resnet34')
+        ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
+        modelName = "./models/Resnet34_"+argsWeights+"_model.pth"
+        feat_dim = 512
+    if argsModel == 'resnet18':
+        print('resnet18')
+        #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
+        ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
+        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
+        modelName = "./models/Resnet18_"+argsWeights+"_model.pth"
+        feat_dim = 512
+    if argsModel == 'resnet12':
+        print('resnet12')
+        model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
+        modelName = "./models/Resnet12_"+argsWeights+"_model.pth" #"_model.pth"
+        feat_dim = 64
+    
+    if argsWeights == 'ImageNet':
+        print('Using pretrained weights with ImageNet dataset')
+    else:
+        print('Using saved model weights', modelName)
+        modelSaved = torch.load(modelName, map_location=torch.device(DEVICE))
+        #ResNetModel.load_state_dict(modelSaved.state_dict())
+        model.load_state_dict(modelSaved.state_dict())
+ 
+    subDir = args.weights + '/'
+    if os.path.exists(resDir+subDir) == False:
+        os.mkdir(resDir+subDir)
+        print("Create result directory", resDir+subDir)
+
+    model.eval()
+    model = model.to(DEVICE)
+    
+    return model, modelName, feat_dim
+
+
+def load_test_dataset(argsDataset, argsLearning):
+
+    if argsDataset == 'Omniglot':
+        if argsLearning:       
+            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirOmniglot, training=False)
+            print("Omniglot Val dataset")
+        else:
+            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirOmniglot, training=False)
+            print("Omniglot Test dataset")
+    if argsDataset == 'euMoths':
+        #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirEuMoths,training=False)
+        if argsLearning:
+            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirEuMoths, training=False)
+            print("euMoths Val dataset")
+        else:
+            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirEuMoths, training=False)
+            print("euMoths Test dataset")
+    if argsDataset == 'CUB':
+        #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirCUB, training=False)
+        if argsLearning:       
+            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirCUB, training=False)
+            print("CUB Val dataset")
+        else:
+            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirCUB, training=False)
+            print("CUB Test dataset")
+    if argsDataset == 'miniImagenet':
+        #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', specs_file=dataDirMiniImageNet+'/test.csv', image_size=image_size, training=False)
+        #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', split="test", image_size=image_size, training=False)
+        if argsLearning:       
+            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirMiniImageNet, training=False)
+            print("miniImageNet Val dataset")
+        else:
+            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirMiniImageNet, training=False)
+            print("miniImageNet Val dataset")
+            
+    return test_set
+
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
                   novelty_th, use_novelty, learn_th, n_workers, DEVICE):
@@ -89,36 +129,14 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
         collate_fn=test_sampler.episodic_collate_fn,
     )
     
-    accuracy, learned_th, avg, std = evaluate(few_shot_classifier, test_loader, 
-                                              novelty_th, 
-                                              use_novelty=use_novelty, 
-                                              learn_th=learn_th, 
-                                              device=DEVICE, tqdm_prefix="Test")
+    accuracy, learned_th, avg, std, avg_o, std_o = evaluate(few_shot_classifier, test_loader, 
+                                                            novelty_th, 
+                                                            use_novelty=use_novelty, 
+                                                            learn_th=learn_th, 
+                                                            device=DEVICE, tqdm_prefix="Test")
     print(f"Average accuracy : {(100 * accuracy):.2f} %")
     return accuracy, learned_th, avg, std
 
-def getLearnedThreshold(weightsName, modelName, n_shot):
-    
-    novelty_th = 0
-    if weightsName == 'ImageNet':
-        avg = ImageNetNoveltyAvgStd[modelName][0]
-        std = ImageNetNoveltyAvgStd[modelName][1]
-        #novelty_th = ImageNetNoveltyTh[modelName]
-    if weightsName == 'Omniglot':
-        avg = OmniglotNoveltyAvgStd[modelName][0]
-        std = OmniglotNoveltyAvgStd[modelName][1]
-    if weightsName == 'euMoths':
-        avg = euMothsNoveltyAvgStd[modelName][0]
-        std = euMothsNoveltyAvgStd[modelName][1]
-        #novelty_th = euMothsNoveltyTh[modelName]
-    if weightsName == 'CUB':
-        avg = CUBNoveltyAvgStd[modelName][0]
-        std = CUBNoveltyAvgStd[modelName][1]
-        #novelty_th = CUBNoveltyTh[modelName]
-
-    novelty_th = avg - 2*(std/np.sqrt(n_shot)) # Mean filter sigma/sqrt(M)
-    print("Novelty threshold", weightsName, modelName, avg, std, novelty_th)
-    return novelty_th
 
 #%% MAIN
 if __name__=='__main__':
@@ -193,48 +211,7 @@ if __name__=='__main__':
     #     num_classes=num_classes,
     # ).to(DEVICE)
     
-    if args.model == 'resnet50':
-        print('resnet50')
-        #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
-        ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
-        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet50_"+args.weights+"_model.pth"
-        feat_dim = 2048
-    if args.model == 'resnet34':
-        print('resnet34')
-        ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
-        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet34_"+args.weights+"_model.pth"
-        feat_dim = 512
-    if args.model == 'resnet18':
-        print('resnet18')
-        #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
-        ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
-        model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet18_"+args.weights+"_model.pth"
-        feat_dim = 512
-    if args.model == 'resnet12':
-        print('resnet12')
-        model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
-        modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth"
-        feat_dim = 64
-    
-    #modelName = "./models/Resnet18_euMoths_state.pth"
-    #model.load_state_dict(torch.load(modelName))
-    if args.weights == 'ImageNet':
-        print('Using pretrained weights with ImageNet dataset')
-    else:
-        print('Using saved model weights', modelName)
-        modelSaved = torch.load(modelName, map_location=torch.device(DEVICE))
-        #ResNetModel.load_state_dict(modelSaved.state_dict())
-        model.load_state_dict(modelSaved.state_dict())
-        subDir = args.weights + '/'
-        if os.path.exists(resDir+subDir) == False:
-            os.mkdir(resDir+subDir)
-            print("Create result directory", resDir+subDir)
-
-    model.eval()
-    model = model.to(DEVICE)
+    model, modelName, feat_dim = load_model(args.model, args.weights)
 
     #few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
     
@@ -258,39 +235,8 @@ if __name__=='__main__':
                                  ["TIM", TIM(model)]
                                 ]
     
-    if args.dataset == 'Omniglot':
-        if args.learning:       
-            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirOmniglot, training=False)
-            print("Omniglot Val dataset")
-        else:
-            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirOmniglot, training=False)
-            print("Omniglot Test dataset")
-    if args.dataset == 'euMoths':
-        #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirEuMoths,training=False)
-        if args.learning:
-            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirEuMoths, training=False)
-            print("euMoths Val dataset")
-        else:
-            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirEuMoths, training=False)
-            print("euMoths Test dataset")
-    if args.dataset == 'CUB':
-        #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirCUB, training=False)
-        if args.learning:       
-            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirCUB, training=False)
-            print("CUB Val dataset")
-        else:
-            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirCUB, training=False)
-            print("CUB Test dataset")
-    if args.dataset == 'miniImagenet':
-        #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', specs_file=dataDirMiniImageNet+'/test.csv', image_size=image_size, training=False)
-        #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', split="test", image_size=image_size, training=False)
-        if args.learning:       
-            test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirMiniImageNet, training=False)
-            print("miniImageNet Val dataset")
-        else:
-            test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirMiniImageNet, training=False)
-            print("miniImageNet Val dataset")
-
+    test_set = load_test_dataset(args.dataset, args.learning)
+    
     test_sampler = TaskSampler(
         test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
     )

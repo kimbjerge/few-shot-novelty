@@ -1,5 +1,9 @@
 """
 General utilities
+
+Modified on Thu Nov  2 09:52:46 2023
+
+@author: Kim Bjerge
 """
 from typing import List, Optional, Tuple
 
@@ -12,7 +16,7 @@ from matplotlib import pyplot as plt
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
+from NoveltyThreshold import BayesTwoClassThreshold, StdTimesTwoThredshold
 from easyfsl.methods import FewShotClassifier
 
 
@@ -373,13 +377,24 @@ def evaluate(
                 tqdm_eval.set_postfix(accuracy=correct_predictions / total_predictions)
 
     learned_th = novelty_th
-    mu = 0
-    sigma = 0
+    mu_k = 0
+    sigma_k = 0
+    mu_o = 0
+    sigma_o = 0
     if learn_th: 
-        mu = np.mean(predictions_true)
-        sigma =  np.std(predictions_true)
-        th = mu - 2*sigma
-        learned_th = th
+        mu_k = np.mean(predictions_true)
+        sigma_k =  np.std(predictions_true)
+        var_k = np.var(predictions_true)
+        th = StdTimesTwoThredshold(mu_k, sigma_k)
+
+        mu_o = np.mean(predictions_false) 
+        sigma_o =  np.std(predictions_false)
+        var_o = np.var(predictions_false)
+
+        #learned_th = th
+        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 20, 1) # 5-way, 1-outlier
+        print(th, bayes_th)
+        
         if plt_hist:
             # Plot the histogram of true prediction values
             plt.hist(predictions_true, bins=100, density=True, alpha=0.5, color='b')
@@ -387,13 +402,17 @@ def evaluate(
             xmin, xmax = plt.xlim() 
             x = np.linspace(xmin, xmax, 100) 
             # add a 'best fit' line
-            y = norm.pdf(x, mu, sigma)
-            plt.plot(x, y, 'k--', linewidth=2)
+            y_k = norm.pdf(x, mu_k, sigma_k)
+            plt.plot(x, y_k, 'k--', linewidth=1)
+            y_o = norm.pdf(x, mu_o, sigma_o)
+            plt.plot(x, y_o, 'k--', linewidth=1)
             steps = 20
-            step = max(y)/steps
+            step = max(y_k)/steps
             listTh = [th for i in range(steps)]
+            listBTh = [bayes_th for i in range(steps)]
             listPb = [step*i for i in range(steps)]
-            plt.plot(listTh, listPb, 'r')
+            plt.plot(listTh, listPb, 'k--')
+            plt.plot(listBTh, listPb, 'g')
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine Similarity')
             plt.ylabel('Probability (%)')
@@ -401,8 +420,10 @@ def evaluate(
             # Tweak spacing to prevent clipping of ylabel
             plt.subplots_adjust(left=0.15)
             plt.show()
+            
+        learned_th = bayes_th # Or sigma threshold (th)
         
-    return correct_predictions / total_predictions, learned_th, mu, sigma
+    return correct_predictions / total_predictions, learned_th, mu_k, sigma_k, mu_o, sigma_o
 
 
 def compute_average_features_from_images(
