@@ -135,23 +135,23 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
                                                             learn_th=learn_th, 
                                                             device=DEVICE, tqdm_prefix="Test")
     print(f"Average accuracy : {(100 * accuracy):.2f} %")
-    return accuracy, learned_th, avg, std
+    return accuracy, learned_th, avg, std, avg_o, std_o
 
 
 #%% MAIN
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='euMoths') #ImageNet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
-    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
-    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='euMoths') #ImageNet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
-    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     args = parser.parse_args()
   
@@ -237,32 +237,60 @@ if __name__=='__main__':
     
     test_set = load_test_dataset(args.dataset, args.learning)
     
-    test_sampler = TaskSampler(
-        test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
-    )
     
     #test(model, test_set, test_sampler, few_shot_classifier, n_workers)
     if args.learning:     
-        resFileName = args.dataset + '_' + args.model + "_novelty_learn.txt"
+        resFileName = args.dataset + '_' + args.model + "_novelty_learned.txt"
         resFile = open(resDir+subDir+resFileName, "a")
-    else:
+        
+        few_shot = few_shot_classifiers[0]
+        print(few_shot[0])
+        few_shot_classifier = few_shot[1].to(DEVICE)
+        novelty_th = 0.5
+
+        line = "FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier\n"
+        print(line)
+        resFile.write(line)   
+        
+        for n_shot in [1,2,3,4,5,6,7,8,9]: # Learn distribution for each shot in range 1-9
+        
+            test_sampler = TaskSampler(
+                test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
+            )
+
+            accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                                        novelty_th, args.novelty, args.learning, 
+                                                                        n_workers, DEVICE)
+
+            line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + '\n'
+            print(line)
+            resFile.write(line)    
+            
+        resFile.close()
+        print("Result saved to", resFileName)
+            
+    else: #Testing
         resFileName = args.dataset + '_' + args.model + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         resFile = open(resDir+subDir+resFileName, "w")
-        
-    novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
 
-    line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold,Average,Std\n"
-    resFile.write(line)   
-    for few_shot in few_shot_classifiers:
-        print(few_shot[0])
-        print("Use softmax", few_shot[1].use_softmax)
-        few_shot_classifier = few_shot[1].to(DEVICE)
-        accuracy, threshold, avg, std = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                      novelty_th, args.novelty, args.learning, 
-                                                      n_workers, DEVICE)
-        line = few_shot[0] + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + '\n'
-        resFile.write(line)    
-    resFile.close()
-    print("Result saved to", resFileName)
+        test_sampler = TaskSampler(
+            test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
+        )
+        
+        novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
     
+        line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold,Average,Std\n"
+        resFile.write(line)   
+        for few_shot in few_shot_classifiers:
+            print(few_shot[0])
+            print("Use softmax", few_shot[1].use_softmax)
+            few_shot_classifier = few_shot[1].to(DEVICE)
+            accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                                        novelty_th, args.novelty, args.learning, 
+                                                                        n_workers, DEVICE)
+            line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + '\n'
+            resFile.write(line)    
+        resFile.close()
+        print("Result saved to", resFileName)
+        
 

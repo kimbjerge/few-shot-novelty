@@ -392,7 +392,7 @@ def evaluate(
         var_o = np.var(predictions_false)
 
         #learned_th = th
-        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 20, 1) # 5-way, 1-outlier
+        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 5, 1) # 5-way, 1-outlier
         print(th, bayes_th)
         
         if plt_hist:
@@ -416,7 +416,7 @@ def evaluate(
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine Similarity')
             plt.ylabel('Probability (%)')
-            plt.title('Histogram of TN (red) and TP (blue) (th>%.4f)' % (th))
+            plt.title('Distribution of TN (red) and TP (blue) (th>%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
             plt.subplots_adjust(left=0.15)
             plt.show()
