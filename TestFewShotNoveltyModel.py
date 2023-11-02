@@ -32,6 +32,8 @@ from torchvision.models import resnet50 #, ResNet50_Weights
 from torchvision.models import resnet34 #, ResNet34_Weights
 from torchvision.models import resnet18 #, ResNet18_Weights
 
+#modelPth = "_model.pth" # First model trained classic and pretrained weights
+modelPth = "_classic_pretrained.pth" # Improved models with pretrained weights and classic training
 
 def load_model(argsModel, argsWeights):
 
@@ -40,25 +42,25 @@ def load_model(argsModel, argsWeights):
         #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
         ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet50_"+argsWeights+"_model.pth"
+        modelName = "./models/Resnet50_"+argsWeights+modelPth
         feat_dim = 2048
     if argsModel == 'resnet34':
         print('resnet34')
         ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet34_"+argsWeights+"_model.pth"
+        modelName = "./models/Resnet34_"+argsWeights+modelPth
         feat_dim = 512
     if argsModel == 'resnet18':
         print('resnet18')
         #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
         ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
-        modelName = "./models/Resnet18_"+argsWeights+"_model.pth"
+        modelName = "./models/Resnet18_"+argsWeights+modelPth
         feat_dim = 512
     if argsModel == 'resnet12':
         print('resnet12')
         model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
-        modelName = "./models/Resnet12_"+argsWeights+"_model.pth" #"_model.pth"
+        modelName = "./models/Resnet12_"+argsWeights+"_model.pth"
         feat_dim = 64
     
     if argsWeights == 'ImageNet':
@@ -142,12 +144,12 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    # parser.add_argument('--weights', default='euMoths') #ImageNet, euMoths, CUB, Omniglot
-    # parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='euMoths') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
