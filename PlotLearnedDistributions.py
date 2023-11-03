@@ -11,13 +11,16 @@ import numpy as np
 from scipy.optimize import curve_fit
 #import plotly.graph_objs as go
 
-def func(x, a, b, c):
+def funcExp(x, a, b):
+    return b - np.exp(-a*x)
+
+def funcLog(x, a, b, c):
     return a * np.log(b * x) + c
 
 # Getting r squared value:
 # https://stackoverflow.com/questions/19189362/getting-the-r-squared-value-using-curve-fit
 def calculate_r_squared(x, y, popt):
-    residuals = y - func(x, *popt)
+    residuals = y - funcLog(x, *popt)
     ss_res = np.sum(residuals**2) #  residulas sum of squares
     ss_tot = np.sum((y-np.mean(y))**2) #total sum of squares
     r_squared = 1 - (ss_res / ss_tot)
@@ -64,15 +67,15 @@ if __name__=='__main__':
     
     # Find non-liniear (logarithmic) relationship between threshold and few shot
     x = np.linspace(1,5,100)
-    y = func(x, 2.7, 1.3, 0.5)
+    y = funcLog(x, 2.7, 1.3, 0.5)
     yn = y + 0.3*np.random.normal(size=len(x))
     
-    popt, pcov = curve_fit(func, x, y)
+    popt, pcov = curve_fit(funcLog, x, y)
     print(popt)
     
     x = learned_distribution_resnet18_CUB['Shot'].to_numpy()
     y = learned_distribution_resnet18_CUB['Threshold'].to_numpy()
-    popt, pcov = curve_fit(func, x, y)
+    popt, pcov = curve_fit(funcLog, x, y)
     print(popt)
     
     R2 = calculate_r_squared(x, y, popt)
@@ -84,7 +87,7 @@ if __name__=='__main__':
     #     x=x, y=func(x, *popt),
     #     name='Fitted Curve'
     # ))
-    yn = func(x, *popt)
+    yn = funcLog(x, *popt)
     plt.plot(x, yn, color='red')
     plt.scatter(x, y)
     plt.xlabel('Shot')
