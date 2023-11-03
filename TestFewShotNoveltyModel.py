@@ -170,10 +170,10 @@ if __name__=='__main__':
     # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
+    parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
     args = parser.parse_args()
@@ -314,15 +314,15 @@ if __name__=='__main__':
     
         #resFileName = args.model + '_' + args.dataset + '_' + args.threshold + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         if args.novelty:
-            resFileName = args.model + '_' + args.dataset + "_novelty.txt" # With novelty detection
+            resFileName = args.dataset + "_novelty.txt" # With novelty detection
         else:
-            resFileName = args.model + '_' + args.dataset + "_few_shot.txt" # Normal few-shot learning
+            resFileName = args.dataset + "_few_shot.txt" # Normal few-shot learning
             
         if os.path.exists(resDir+subDir+resFileName):
             resFile = open(resDir+subDir+resFileName, "a") # Append to existing result file
         else:
             resFile = open(resDir+subDir+resFileName, "w") # Create new result file with header           
-            line = "FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold\n"
+            line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold\n"
             resFile.write(line)   
             
         for few_shot in few_shot_classifiers:
@@ -332,7 +332,7 @@ if __name__=='__main__':
             accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                         novelty_th, args.novelty, args.learning, 
                                                                         n_workers, DEVICE)
-            line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + args.threshold + ',' + str(threshold) + '\n'
+            line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + args.threshold + ',' + str(threshold) + '\n'
             resFile.write(line)    
         resFile.close()
         print("Result saved to", resFileName)
