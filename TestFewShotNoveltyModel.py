@@ -14,7 +14,7 @@ import argparse
 from torch.utils.data import DataLoader
 
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
-from utilsNovelty import evaluate
+from utilsNovelty import evaluate, Metrics
 from NoveltyThreshold import StdTimesTwoThredshold
 
 from easyfsl.modules import resnet12
@@ -141,7 +141,7 @@ def get_threshold_learned(argsModel, argsWeights, nameNoveltyLearned, n_shot, us
 
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                  novelty_th, use_novelty, learn_th, n_workers, DEVICE):
+                  novelty_th, use_novelty, learn_th, n_workers, metric, DEVICE):
 
     test_loader = DataLoader(
         test_set,
@@ -151,11 +151,16 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
         collate_fn=test_sampler.episodic_collate_fn,
     )
     
-    accuracy, learned_th, avg, std, avg_o, std_o = evaluate(few_shot_classifier, test_loader, 
+    accuracy, learned_th, avg, std, avg_o, std_o = evaluate(few_shot_classifier, 
+                                                            test_loader, 
                                                             novelty_th, 
+                                                            device=DEVICE,
+                                                            tqdm_prefix="Test",
+                                                            plt_hist=True,
                                                             use_novelty=use_novelty, 
+                                                            metric=metric,
                                                             learn_th=learn_th, 
-                                                            device=DEVICE, tqdm_prefix="Test")
+                                                            )
     print(f"Average accuracy : {(100 * accuracy):.2f} %")
     return accuracy, learned_th, avg, std, avg_o, std_o
 
@@ -164,16 +169,16 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
-    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
-    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
+    # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
     args = parser.parse_args()
@@ -225,7 +230,7 @@ if __name__=='__main__':
     if args.learning:
         n_test_tasks = 50 # 50 learning on validation
     else:
-        n_test_tasks = 200 # 500 test
+        n_test_tasks = 500 # 500 test
         
     #%% Create model and prepare for training
     #DEVICE = "cuda"
@@ -247,7 +252,7 @@ if __name__=='__main__':
     else:
         few_shot_classifiers =  [ 
                                  # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                                 ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)],
+                                 ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)],
                                  #["PrototypicalNetworks", PrototypicalNetworks(model)], No
                                  #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                                  #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
@@ -294,7 +299,7 @@ if __name__=='__main__':
 
             accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                         novelty_th, args.novelty, args.learning, 
-                                                                        n_workers, DEVICE)
+                                                                        n_workers, None, DEVICE)
 
             line = few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + '\n'
             print(line)
@@ -322,17 +327,21 @@ if __name__=='__main__':
             resFile = open(resDir+subDir+resFileName, "a") # Append to existing result file
         else:
             resFile = open(resDir+subDir+resFileName, "w") # Create new result file with header           
-            line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold\n"
+            line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold\n"
             resFile.write(line)   
             
         for few_shot in few_shot_classifiers:
             print(few_shot[0])
             print("Use softmax", few_shot[1].use_softmax)
             few_shot_classifier = few_shot[1].to(DEVICE)
+            metric = Metrics()
             accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                         novelty_th, args.novelty, args.learning, 
-                                                                        n_workers, DEVICE)
-            line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' + args.threshold + ',' + str(threshold) + '\n'
+                                                                        n_workers, metric, DEVICE)
+            line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
+            line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
+            line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
+            line += args.threshold + ',' + str(threshold) + '\n'
             resFile.write(line)    
         resFile.close()
         print("Result saved to", resFileName)

@@ -254,6 +254,46 @@ def evaluate_V2(
     return correct_predictions / total_predictions
 
 
+class Metrics:
+    def __init__(self):
+      
+      self.true_positive = 0
+      self.false_positive = 0
+      self.false_negative = 0
+
+    # Calculate the metrics for the novelty class with label index 0
+    def calcMetrics(self, predicted, query_labels):
+        
+        # Label 0 is outlier label 
+        TP=(predicted[query_labels==0] == 0).sum().numpy() # Same labels as query
+        self.true_positive += TP
+        FP=(predicted[query_labels!=0] == 0).sum().numpy() # Novelty label for know classes
+        self.false_positive += FP
+        FN=(predicted[query_labels==0] != 0).sum().numpy() # Novel class with label of know classes
+        self.false_negative += FN
+        #print("TP FP FN", self.true_positive, self.false_positive, self.false_negative)
+        
+    def TP(self):
+        return self.true_positive
+
+    def FP(self):
+        return self.false_positive
+
+    def FN(self):
+        return self.false_negative
+    
+    def recall(self):
+        return self.true_positive/(self.false_negative+self.true_positive)
+    
+    def precision(self):
+        return self.true_positive/(self.false_positive+self.true_positive)
+    
+    def f1score(self):
+        R = self.recall()
+        P = self.precision()
+        return (2*P*R)/(P+R)
+
+
 predictions_true = [] # Used during learning the thredshold for outlier detection
 predictions_false = []
 
@@ -266,6 +306,7 @@ def evaluate_on_one_task(
     use_novelty,
     learn_th,
     thMin,
+    metric,
     device
 ) -> Tuple[int, int]:
     """
@@ -293,6 +334,8 @@ def evaluate_on_one_task(
         number_of_correct_predictions = (
             (minDistIdx == query_labels).sum().item()
         )
+        if metric != None:
+            metric.calcMetrics(minDistIdx, query_labels)
     else:
         predictions = predictions.to(device)
         number_of_correct_predictions = (
@@ -314,6 +357,7 @@ def evaluate(
     tqdm_prefix: Optional[str] = None,
     plt_hist: bool = True, 
     use_novelty: bool = False, 
+    metric = None,
     learn_th: bool = False
 ) -> float:
     """
@@ -367,6 +411,7 @@ def evaluate(
                     use_novelty,
                     learn_th,
                     novelty_th,
+                    metric,
                     device
                 )
 
