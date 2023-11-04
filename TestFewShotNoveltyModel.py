@@ -134,8 +134,10 @@ def get_threshold_learned(argsModel, argsWeights, nameNoveltyLearned, n_shot, us
     
     if useBayesThreshold:
         threshold = df['BayesThreshold'].to_numpy()[0]
+        print("Bayes threshold", threshold)
     else:
         threshold = StdTimesTwoThredshold(df['Average'].to_numpy()[0], df['Std'].to_numpy()[0])
+        print("Std threshold", threshold)
         
     return threshold
 
@@ -178,10 +180,12 @@ if __name__=='__main__':
     parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
+    parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
     args = parser.parse_args()
+    
+    print(args.model, args.weights, args.dataset, args.novelty, args.learning, args.shot, args.way, args.query, args.threshold)
   
     resDir = "./result/"
     dataDirMiniImageNet = "./data/mini_imagenet"
@@ -231,10 +235,11 @@ if __name__=='__main__':
         n_test_tasks = 50 # 50 learning on validation
     else:
         n_test_tasks = 500 # 500 test
-        
+    
+    print("Tasts for testing", n_test_tasks)
     #%% Create model and prepare for training
-    #DEVICE = "cuda"
-    DEVICE = "cpu"
+    DEVICE = "cuda"
+    #DEVICE = "cpu"
     
     # model = resnet12(
     #     use_fc=True,
@@ -314,8 +319,12 @@ if __name__=='__main__':
             test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
         )
         
+        useBayesThreshold = False
+        if "bayes" in args.threshold:
+            useBayesThreshold = True
+            
         #novelty_th = getLearnedThreshold(args.weights, args.model, args.shot) # Old method 
-        novelty_th = get_threshold_learned(args.model, args.weights, get_train_method(args.weights)+'_novelty_learned', n_shot, useBayesThreshold=(args.threshold == 'bayes'))
+        novelty_th = get_threshold_learned(args.model, args.weights, get_train_method(args.weights)+'_novelty_learned', n_shot, useBayesThreshold=useBayesThreshold)
     
         #resFileName = args.model + '_' + args.dataset + '_' + args.threshold + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         if args.novelty:
