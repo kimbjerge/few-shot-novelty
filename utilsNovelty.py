@@ -265,11 +265,11 @@ class Metrics:
     def calcMetrics(self, predicted, query_labels):
         
         # Label 0 is outlier label 
-        TP=(predicted[query_labels==0] == 0).sum().numpy() # Same labels as query
+        TP=(predicted[query_labels==0] == 0).sum().cpu().numpy() # Same labels as query
         self.true_positive += TP
-        FP=(predicted[query_labels!=0] == 0).sum().numpy() # Novelty label for know classes
+        FP=(predicted[query_labels!=0] == 0).sum().cpu().numpy() # Novelty label for know classes
         self.false_positive += FP
-        FN=(predicted[query_labels==0] != 0).sum().numpy() # Novel class with label of know classes
+        FN=(predicted[query_labels==0] != 0).sum().cpu().numpy() # Novel class with label of know classes
         self.false_negative += FN
         #print("TP FP FN", self.true_positive, self.false_positive, self.false_negative)
         
