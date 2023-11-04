@@ -319,10 +319,13 @@ if __name__=='__main__':
             test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
         )
         
-        useBayesThreshold = False
         if "bayes" in args.threshold:
             useBayesThreshold = True
-            
+            args.threshold = "bayes"
+        else:
+            useBayesThreshold = False
+            args.threshold = "std"
+                       
         #novelty_th = getLearnedThreshold(args.weights, args.model, args.shot) # Old method 
         novelty_th = get_threshold_learned(args.model, args.weights, get_train_method(args.weights)+'_novelty_learned', n_shot, useBayesThreshold=useBayesThreshold)
     
