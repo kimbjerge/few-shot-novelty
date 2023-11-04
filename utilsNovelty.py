@@ -283,15 +283,24 @@ class Metrics:
         return self.false_negative
     
     def recall(self):
-        return self.true_positive/(self.false_negative+self.true_positive)
+        if (self.true_positive == 0):
+            return 0
+        else:
+            return self.true_positive/(self.false_negative+self.true_positive)
     
     def precision(self):
-        return self.true_positive/(self.false_positive+self.true_positive)
+        if (self.true_positive == 0):
+            return 0
+        else:
+            return self.true_positive/(self.false_positive+self.true_positive)
     
     def f1score(self):
         R = self.recall()
         P = self.precision()
-        return (2*P*R)/(P+R)
+        if (R+P) == 0:
+            return 0
+        else:
+            return (2*P*R)/(P+R)
 
 
 predictions_true = [] # Used during learning the thredshold for outlier detection
