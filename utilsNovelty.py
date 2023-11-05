@@ -343,17 +343,20 @@ def evaluate_on_one_task(
         number_of_correct_predictions = (
             (minDistIdx == query_labels).sum().item()
         )
-        if metric != None:
-            metric.calcMetrics(minDistIdx, query_labels)
+
     else:
         predictions = predictions.to(device)
+        minDistIdx = torch.max(predictions, 1)[1]
         number_of_correct_predictions = (
-            (torch.max(predictions, 1)[1] == query_labels).sum().item()
+            (minDistIdx == query_labels).sum().item()
         )
         if learn_th:
             #print(np.mean(predictions_true)-2*np.std(predictions_true))
             print("Th, avg, std", np.mean(predictions_true)-2*np.std(predictions_true), np.mean(predictions_true), np.std(predictions_true))
-    
+ 
+    if metric != None:
+        metric.calcMetrics(minDistIdx, query_labels)
+
     return number_of_correct_predictions, len(query_labels)
 
 
