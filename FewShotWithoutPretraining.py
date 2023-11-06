@@ -256,11 +256,12 @@ if __name__=='__main__':
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    #batch_size = 256
-    batch_size = 128
+    batch_size = 256
+    #batch_size = 128
+    #batch_size = 64
     n_workers = 6
  
-    n_way = 5
+    n_way = 5 # 5 or 20 paper did
     n_shot = 5 # Use 3 shot for validation, for episodic training use 5 shot
     n_query = 6
     n_tasks_per_epoch = 50
@@ -322,14 +323,14 @@ if __name__=='__main__':
     if args.model == 'resnet50':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
-        NetModel = resnet50(pretrained=True).to(DEVICE)    
+        NetModel = resnet50(pretrained=False).to(DEVICE)    
         modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + ".pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
-        NetModel = resnet34(pretrained=True).to(DEVICE)
+        NetModel = resnet34(pretrained=False).to(DEVICE)
         modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + ".pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
