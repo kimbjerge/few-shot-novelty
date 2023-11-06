@@ -8,7 +8,8 @@ Created on Fri Nov  3 14:45:58 2023
 import matplotlib.pyplot as plt
 import pandas as pd
 
-resultDir = "./result/testT200/" # 200*6 queries 
+#resultDir = "./result/testT200/" # 200*6 queries 
+resultDir = "./result/testT500/" # 500*6 queries made on GPU cluser 
 
 def plotAccuracy(dataset, model, n_shot):
     title = dataset + " " + model + " (n-shot=" + str(n_shot) + ")"
@@ -35,6 +36,34 @@ def plotAccuracy(dataset, model, n_shot):
     data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='red', title=title, ax=ax)
     ax.set_ylabel("Accuracy")
     ax.legend(["FewShot", "NoveltyStd", "NoveltyBayes"])
+    plt.show()
+    
+
+def plotPrecisionRecall(dataset, model, n_shot):
+    title = dataset + " " + model + " (n-shot=" + str(n_shot) + ")"
+    
+    # Model,FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold
+    data_few_shot = resultDir + dataset + "_few_shot.txt"
+    # Model,FewShotClassifier,Way,Shot,Query,Accuracy,Method,Threshold
+    data_novelty = resultDir + dataset + "_novelty.txt"
+    
+    data_few_shot_df = pd.read_csv(data_few_shot)
+    data_few_shot_df = data_few_shot_df[data_few_shot_df['Model'] == model]
+    data_novelty_df = pd.read_csv(data_novelty)
+    data_novelty_df = data_novelty_df[data_novelty_df['Model'] == model]
+    
+    data_df = data_novelty_df.loc[data_novelty_df['Shot'] == n_shot]
+    data_few_shot_df = data_few_shot_df.loc[data_few_shot_df['Shot'] == n_shot]
+    data_bayes_df = data_df.loc[data_df['Method'] == 'bayes']
+ 
+    ax = plt.gca()
+    # Plot bayes vs. std
+    data_few_shot_df.plot(kind='line', x='FewShotClassifier',  y='Precision',  color='green', ax=ax)
+    data_few_shot_df.plot(kind='line', x='FewShotClassifier',  y='Recall',  color='blue', ax=ax)
+    data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Precision',  color='red', title=title, ax=ax)
+    data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Recall',  color='black', title=title, ax=ax)
+    ax.set_ylabel("Class precision or recall")
+    ax.legend(["Precision", "Recall", "N-Precision", "N-Recall"])
     plt.show()
       
     
@@ -82,28 +111,36 @@ if __name__=='__main__':
     dataset = "Omniglot"
     plotAccuracy(dataset, model="resnet12", n_shot=1)
     plotAccuracy(dataset, model="resnet12", n_shot=5)
+    plotPrecisionRecall(dataset, model="resnet12", n_shot=1)
+    plotPrecisionRecall(dataset, model="resnet12", n_shot=5)
 
     dataset = "euMoths"
-    plotAccuracy(dataset, model="resnet18", n_shot=1)
-    plotAccuracy(dataset, model="resnet18", n_shot=5)
+    plotAccuracy(dataset, model="resnet50", n_shot=1)
+    plotAccuracy(dataset, model="resnet50", n_shot=5)
+    plotPrecisionRecall(dataset, model="resnet50", n_shot=1)
+    plotPrecisionRecall(dataset, model="resnet50", n_shot=5)
     
     plotAccuracyModels(dataset, n_shot=1)
     plotAccuracyModels(dataset, n_shot=5)
 
     dataset = "CUB"
-    plotAccuracy(dataset, model="resnet18", n_shot=1)
-    plotAccuracy(dataset, model="resnet18", n_shot=5)
+    #plotAccuracy(dataset, model="resnet18", n_shot=1)
+    #plotAccuracy(dataset, model="resnet18", n_shot=5)
     plotAccuracy(dataset, model="resnet34", n_shot=1)
     plotAccuracy(dataset, model="resnet34", n_shot=5)    
-    
+    plotPrecisionRecall(dataset, model="resnet34", n_shot=1)
+    plotPrecisionRecall(dataset, model="resnet34", n_shot=5)
+   
     plotAccuracyModels(dataset, n_shot=1)
     plotAccuracyModels(dataset, n_shot=5)
 
     dataset = "miniImagenet"
     plotAccuracy(dataset, model="resnet18", n_shot=1)
     plotAccuracy(dataset, model="resnet18", n_shot=5)
-    plotAccuracy(dataset, model="resnet34", n_shot=1)
-    plotAccuracy(dataset, model="resnet34", n_shot=5)    
+    #plotAccuracy(dataset, model="resnet34", n_shot=1)
+    #plotAccuracy(dataset, model="resnet34", n_shot=5)    
+    plotPrecisionRecall(dataset, model="resnet18", n_shot=1)
+    plotPrecisionRecall(dataset, model="resnet18", n_shot=5)
     
     plotAccuracyModels(dataset, n_shot=1)
     plotAccuracyModels(dataset, n_shot=5)
