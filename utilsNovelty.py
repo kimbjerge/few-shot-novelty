@@ -327,11 +327,29 @@ def evaluate_on_one_task(
     predictions = model(query_images).detach().data
 
     if learn_th:
-        correct_max_predictions = predictions[torch.max(predictions, 1)[1] == query_labels].max(1)[0]
-        wrong_predictions = predictions[torch.max(predictions, 1)[1] != query_labels].reshape(-1)
-        predictions_false.extend(wrong_predictions.tolist())
-        predictions_true.extend(correct_max_predictions.tolist())
+        
+        #correct_max_predictions = predictions[torch.max(predictions, 1)[1] == query_labels].max(1)[0]
+        #Below line of code is wrong!
+        #wrong_predictions = predictions[torch.max(predictions, 1)[1] != query_labels].reshape(-1)
 
+        correct_episodes = predictions[torch.max(predictions, 1)[1] == query_labels]
+        correct_scores = correct_episodes.max(1)[0]
+        correct_pred_idx = correct_episodes.max(1)[1]            
+        
+        #Select scores part of correct predicitons that don't belong to the correct query label
+        num_rows = correct_episodes.shape[0]
+        num_cols = correct_episodes.shape[1]
+        wrong_scores = torch.empty(num_rows*(num_cols-1)).to(device)
+        idx = 0
+        for i in range(num_rows):
+            for j in range(num_cols):
+                if j != correct_pred_idx[i]:
+                    wrong_scores[idx]=correct_episodes[i][j]
+                    idx += 1
+                    
+        predictions_false.extend(wrong_scores.tolist())
+        predictions_true.extend(correct_scores.tolist())
+        
     if use_novelty:
         predictionsKWays = predictions[:,1:] # Novel class is index 0
         minDistSet = predictionsKWays.max(1)
