@@ -129,8 +129,10 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                          model: FewShotClassifier, 
                          data_loader: DataLoader, 
                          optimizer: Optimizer):
-    
+    alpha = 0.1
     all_loss = []
+    all_closs = []
+    all_sloss = []
     model.train()
     with tqdm(
         enumerate(data_loader), total=len(data_loader), desc="Training"
@@ -148,13 +150,40 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
             )
             classification_scores = model(query_images.to(DEVICE))
 
-            loss = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
+            correct_episodes = classification_scores[torch.max(classification_scores, 1)[1] == query_labels.to(DEVICE)]
+            correct_scores = correct_episodes.max(1)[0]
+            correct_pred_idx = correct_episodes.max(1)[1]            
+            
+            #Select scores part of correct predicitons that don't belong to the query label
+            num_rows = correct_episodes.shape[0]
+            num_cols = correct_episodes.shape[1]
+            wrong_scores = torch.empty(num_rows*(num_cols-1)).to(DEVICE)
+            idx = 0
+            for i in range(num_rows):
+                for j in range(num_cols):
+                    if j != correct_pred_idx[i]:
+                        wrong_scores[idx]=correct_episodes[i][j]
+                        idx += 1
+            
+            
+            ScatterWithin = correct_scores.var() + wrong_scores.var() 
+            #ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
+            #sloss = 1 - ScatterBetween # Mean only
+            sloss = ScatterWithin # Variance only
+            #sloss = ScatterWithin/ScatterBetween # Variance and mean      
+ 
+            closs = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
+            loss = alpha*sloss + closs
             loss.backward()
             optimizer.step()
 
             all_loss.append(loss.item())
+            all_closs.append(closs.item())
+            all_sloss.append(sloss.item())
 
-            tqdm_train.set_postfix(loss=mean(all_loss))
+
+            tqdm_train.set_postfix( loss="{:.4f}".format(mean(all_loss)), closs="{:.4f}".format(mean(all_closs)), sloss="{:.4f}".format(mean(all_sloss)) )
+            #tqdm_train.set_postfix( closs="{}".format(mean(all_loss)) )
 
     return mean(all_loss)
 
@@ -227,8 +256,8 @@ if __name__=='__main__':
     parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
     parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot
     parser.add_argument('--mode', default='episodic') #classic, episodic
-    parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=1, type=int) #epochs
+    parser.add_argument('--cosine', default='True', type=bool) # Default use Euclidian distance when no parameter ''
+    parser.add_argument('--epochs', default=10, type=int) #epochs
     args = parser.parse_args()
        
     dataDir = './data/' + args.dataset
@@ -307,8 +336,8 @@ if __name__=='__main__':
     )
     
     #%% Create model and prepare for training
-    #DEVICE = "cuda:1"
-    DEVICE = "cpu"
+    DEVICE = "cuda:2"
+    #DEVICE = "cpu"
     
     num_classes = len(set(train_set.get_labels()))
     print("Training classes", num_classes)
