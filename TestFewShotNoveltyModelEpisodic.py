@@ -65,7 +65,12 @@ def load_model(argsModel, argsWeights):
     if argsModel == 'resnet12':
         print('resnet12')
         model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
-        modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth"
+        #modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth" Ecuclidian distance used during training
+        #modelName = "./models/Resnet12_"+args.weights+"_episodic_ScatterEuclidianLoss.pth" # 124 epochs, 96.93 % accuracy
+        modelName = "./models/Resnet12_"+args.weights+"_episodic_EntropyEuclidianLoss.pth" # ~100 epochs, 92.87 % accuracy
+        #modelName = "./models/Resnet12_"+args.weights+"_episodic_MeanLoss.pth" #
+        #modelName = "./models/Resnet12_"+args.weights+"_episodic_VarLoss.pth" #
+        #modelName = "./models/Resnet12_"+args.weights+"_episodic_ScatterLoss.pth" # best model after 136 epochs 85.5% accuracy
         feat_dim = 64
     
     #modelName = "./models/Resnet18_euMoths_state.pth"
@@ -159,9 +164,9 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet34') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='CUB') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='CUB') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
     #parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     #parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
@@ -172,7 +177,7 @@ if __name__=='__main__':
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
     parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
-    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)

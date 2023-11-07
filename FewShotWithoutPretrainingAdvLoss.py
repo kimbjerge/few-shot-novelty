@@ -66,8 +66,8 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
 def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  n_epochs=200):
 
     #scheduler_milestones = [3, 6]
-    #scheduler_milestones = [500, 1000] # From scratch with 500 epochs
-    scheduler_milestones = [70, 140] # From scratch with 200 epochs
+    scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+    #scheduler_milestones = [70, 140] # From scratch with 200 epochs
     scheduler_gamma = 0.1
     #learning_rate = 5e-4 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
     learning_rate = 0.1 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
@@ -122,14 +122,14 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     
     print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
     
-    return best_state, model
+    return best_state, model, best_epoch
     
 #%% Episodic training      
 def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss, 
                          model: FewShotClassifier, 
                          data_loader: DataLoader, 
-                         optimizer: Optimizer):
-    alpha = 0.1
+                         optimizer: Optimizer,
+                         alpha):
     all_loss = []
     all_closs = []
     all_sloss = []
@@ -164,13 +164,12 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                     if j != correct_pred_idx[i]:
                         wrong_scores[idx]=correct_episodes[i][j]
                         idx += 1
-            
-            
+                       
             ScatterWithin = correct_scores.var() + wrong_scores.var() 
-            #ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
+            ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
             #sloss = 1 - ScatterBetween # Mean only
-            sloss = ScatterWithin # Variance only
-            #sloss = ScatterWithin/ScatterBetween # Variance and mean      
+            #sloss = ScatterWithin # Variance only
+            sloss = ScatterWithin/ScatterBetween # Variance and mean      
  
             closs = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
             loss = alpha*sloss + closs
@@ -181,22 +180,21 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
             all_closs.append(closs.item())
             all_sloss.append(sloss.item())
 
-
             tqdm_train.set_postfix( loss="{:.4f}".format(mean(all_loss)), closs="{:.4f}".format(mean(all_closs)), sloss="{:.4f}".format(mean(all_sloss)) )
             #tqdm_train.set_postfix( closs="{}".format(mean(all_loss)) )
 
     return mean(all_loss)
 
-def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,  n_epochs=1500):
+def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=1500, alpha=0.1):
     
     entropyLossFunction = nn.CrossEntropyLoss()
     
     #scheduler_milestones = [10, 30]
-    scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+    scheduler_milestones = [60, 120] # From scratch with 200 epochs
+    #scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
     scheduler_gamma = 0.1
     learning_rate = 1e-1 # 1e-2
-    tb_logs_dir = Path("./logs")
-    
+    tb_logs_dir = Path("./logs")   
     
     train_optimizer = SGD(
         few_shot_classifier.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4
@@ -215,7 +213,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,  n_e
     best_epoch = 0
     for epoch in range(n_epochs):
         print(f"Epoch {epoch}")
-        average_loss = train_episodic_epoch(entropyLossFunction, few_shot_classifier, train_loader, train_optimizer)
+        average_loss = train_episodic_epoch(entropyLossFunction, few_shot_classifier, train_loader, train_optimizer, alpha)
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
@@ -237,7 +235,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,  n_e
 
     print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
 
-    return best_state, few_shot_classifier
+    return best_state, few_shot_classifier, best_epoch
 
 
 #%% Few shot testing of model        
@@ -256,10 +254,13 @@ if __name__=='__main__':
     parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
     parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot
     parser.add_argument('--mode', default='episodic') #classic, episodic
-    parser.add_argument('--cosine', default='True', type=bool) # Default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=10, type=int) #epochs
+    parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
+    parser.add_argument('--epochs', default=10, type=int) # epochs
+    parser.add_argument('--alpha', default=0.1, type=float) # 
     args = parser.parse_args()
-       
+ 
+    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha)
+      
     dataDir = './data/' + args.dataset
     image_size = 224 # ResNet euMoths and CUB
     n_epochs = args.epochs # ImageNet pretrained weights - finetuning
@@ -372,7 +373,7 @@ if __name__=='__main__':
         
     if args.model == 'resnet12':
         print('resnet12')
-        modelName = "./models/Resnet12_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"  
+        modelName = "./models/Resnet12_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"  
         # This model is not retrained, but trained from scratch
         model = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
         
@@ -388,13 +389,13 @@ if __name__=='__main__':
     
     if args.mode == 'classic':
         print("Classic training epochs", n_epochs)
-        best_state, model = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
+        best_state, model, best_epoch = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
         model.set_use_fc(False)       
         model.load_state_dict(best_state)
 
     if args.mode == 'episodic':
         print("Episodic training epochs", n_epochs)
-        best_state, model = episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
+        best_state, model, best_epoch = episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs, alpha=args.alpha)
         few_shot_classifier.load_state_dict(best_state)
     
     
@@ -411,7 +412,7 @@ if __name__=='__main__':
     )
     accuracy = test(model, test_loader, few_shot_classifier, n_workers, DEVICE)
     
-    textLine = f"Average accuracy : {(100 * accuracy):.2f} % " + args.model + " " + args.dataset + '\n'
+    textLine = f"Average accuracy : {(100 * accuracy):.2f} % " + args.model + "," + args.dataset + "," + str(args.alpha) + "," + str(best_epoch) + "," +  modelName + '\n'
     print(textLine)
     with open('ResultTrainAdvLoss.txt', 'a') as f:
         f.write(textLine)
