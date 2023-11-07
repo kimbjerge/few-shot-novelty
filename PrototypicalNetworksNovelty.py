@@ -23,7 +23,7 @@ class PrototypicalNetworksNovelty(FewShotClassifier):
     def __init__(
         self,
         *args,
-        use_normcorr: int = 0, # Default euclidian distance
+        use_normcorr: int = 0, # Default cosine distance, 3 euclidian distance
         **kwargs,
     ):
         """
@@ -115,8 +115,10 @@ class PrototypicalNetworksNovelty(FewShotClassifier):
                     scores[:,label] = scores_label.mean(1)   
                     scores_std[:,label] = scores_label.std(1)
             else: # Euclidian of cosine distance to mean of prototype features
-                #scores = self.l2_distance_to_prototypes(query_features)
-                scores = self.cosine_distance_to_prototypes(query_features)
+                if self.use_normcorr == 3: # Euclidian distance to prototypes
+                    scores = self.l2_distance_to_prototypes(query_features)
+                else: # Default cosine distance to prototypes (0) same as 1
+                    scores = self.cosine_distance_to_prototypes(query_features)
                 
         #return self.softmax_if_specified(scores), scores_std # Std not used
         return self.softmax_if_specified(scores)
