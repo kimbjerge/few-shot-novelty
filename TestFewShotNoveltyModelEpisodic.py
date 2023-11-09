@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import argparse
 #from torch import nn
+import pandas as pd
 from torch.utils.data import DataLoader
 
 #from easyfsl.datasets import CUB
@@ -19,12 +20,12 @@ from torch.utils.data import DataLoader
 #from easyfsl.modules import resnet12
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
 from utilsNovelty import evaluate
+from NoveltyThreshold import getLearnedThreshold, StdTimesTwoThredshold
 
 from easyfsl.modules import resnet12
 from easyfsl.methods import PrototypicalNetworks, RelationNetworks, MatchingNetworks, TransductiveFinetuning
 from easyfsl.methods import SimpleShot, Finetune, FEAT, BDCSPN, LaplacianShot, PTMAP, TIM
 from easyfsl.samplers import TaskSampler
-from NoveltyThreshold import getLearnedThreshold
 
 from FewShotModelData import EmbeddingsModel, FewShotDataset
 
@@ -33,25 +34,27 @@ from torchvision.models import resnet34 #, ResNet34_Weights
 from torchvision.models import resnet18 #, ResNet18_Weights
 
 
-def load_model(argsModel, argsWeights):
+def load_model(argsModel, argsWeights, argsAlpha):
     
     if argsModel == 'resnet50':
-        print('resnet50')
+        #print('resnet50')
         #ResNetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.86, 25.6M
         ResNetModel = resnet50(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         #modelName = "./models/Resnet50_"+argsWeights+"_model.pth"
-        modelName = "./models/Resnet50_"+argsWeights+"_classic_pretrained.pth"
+        #modelName = "./models/Resnet50_"+argsWeights+"_classic_pretrained.pth"
+        #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E61_A0_824.pth"
+        modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E367_A0_836.pth"
         feat_dim = 2048
     if argsModel == 'resnet34':
-        print('resnet34')
+        #print('resnet34')
         ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         #modelName = "./models/Resnet34_"+argsWeights+"_model.pth"
         modelName = "./models/Resnet34_"+argsWeights+"_classic_pretrained.pth"
         feat_dim = 512
     if argsModel == 'resnet18':
-        print('resnet18')
+        #print('resnet18')
         #ResNetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) 
         ResNetModel = resnet18(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
@@ -63,14 +66,21 @@ def load_model(argsModel, argsWeights):
         #modelName = "./models/Resnet18_"+argsWeights+"_epi_model.pth"
         feat_dim = 512
     if argsModel == 'resnet12':
-        print('resnet12')
+        #print('resnet12')
         model = resnet12(use_fc=True, num_classes=num_classes) #.to(DEVICE)
         #modelName = "./models/Resnet12_"+args.weights+"_model.pth" #"_model.pth" Ecuclidian distance used during training
-        #modelName = "./models/Resnet12_"+args.weights+"_episodic_ScatterEuclidianLoss.pth" # 124 epochs, 96.93 % accuracy
-        modelName = "./models/Resnet12_"+args.weights+"_episodic_EntropyEuclidianLoss.pth" # ~100 epochs, 92.87 % accuracy
-        #modelName = "./models/Resnet12_"+args.weights+"_episodic_MeanLoss.pth" #
-        #modelName = "./models/Resnet12_"+args.weights+"_episodic_VarLoss.pth" #
-        #modelName = "./models/Resnet12_"+args.weights+"_episodic_ScatterLoss.pth" # best model after 136 epochs 85.5% accuracy
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_ScatterEuclidianLoss.pth" # 124 epochs, 96.93 % accuracy
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_EntropyEuclidianLoss.pth" # ~100 epochs, 92.87 % accuracy
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_MeanLoss.pth" #
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_VarLoss.pth" #
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_ScatterLoss.pth" # best model after 136 epochs 85.5% accuracy
+
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_2_AdvLoss.pth" # 145 epochs, 92.87 % accuracy
+        #modelName = "./modelsAdv200/Resnet12_"+args.weights+"_episodic_0_AdvLoss.pth" # 145 epochs, 92.87 % accuracy
+        #modelName = "./modelsAdv/Resnet12_"+args.weights+"_episodic_0_AdvLoss.pth" # 1436 epochs, 98.75 % accuracy
+        #modelName = "./modelsAdv/Resnet12_"+args.weights+"_episodic_1_AdvLoss.pth" # 1261 epochs, 98.85 % accuracy
+        #modelName = "./modelsAdv/Resnet12_"+args.weights+"_episodic_2_AdvLoss.pth" # 1335 epochs, 99.07 % accuracy
+        modelName = "./modelsAdv/Resnet12_"+args.weights+"_episodic_"+ str(int(argsAlpha*10)) + "_AdvLoss.pth" 
         feat_dim = 64
     
     #modelName = "./models/Resnet18_euMoths_state.pth"
@@ -135,10 +145,28 @@ def load_test_dataset(argsDataset, argsLearning):
             print("miniImageNet Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirMiniImageNet, training=False)
-            print("miniImageNet Val dataset")
+            print("miniImageNet Test dataset")
     
     return test_set
 
+def get_threshold_learned(modelName, argsModel, argsWeights, nameNoveltyLearned, n_shot, useBayesThreshold=True):
+    
+    noveltyLearnedFile = "./learnedAdv/" + argsModel + '_' + argsWeights + nameNoveltyLearned + '.csv'
+    print("Learned threshold file", noveltyLearnedFile)
+    
+    df = pd.read_csv(noveltyLearnedFile)
+    
+    df = df.loc[df['ModelName'] == modelName]
+    df = df.loc[df['Shot'] == n_shot]
+    
+    if useBayesThreshold:
+        threshold = df['BayesThreshold'].to_numpy()[0]
+        print("Bayes threshold", threshold)
+    else:
+        threshold = StdTimesTwoThredshold(df['Average'].to_numpy()[0], df['Std'].to_numpy()[0])
+        print("Std threshold", threshold)
+        
+    return threshold
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
                   novelty_th, use_novelty, learn_th, n_workers, DEVICE):
@@ -157,30 +185,36 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
                                               learn_th=learn_th, 
                                               device=DEVICE, tqdm_prefix="Test")
     print(f"Average accuracy : {(100 * accuracy):.2f} %")
-    return accuracy, learned_th, avg, std
+    return accuracy, learned_th, avg, std, avg_o, std_o
 
 
 #%% MAIN
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
+    
     parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    #parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    #parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    #parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='ImageNet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    
+    # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
     
     # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
-    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
+    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
+    parser.add_argument('--alpha', default=0.3, type=float)
     args = parser.parse_args()
   
     resDir = "./result/"
@@ -188,11 +222,16 @@ if __name__=='__main__':
     dataDirEuMoths = "./data/euMoths"
     dataDirCUB = "./data/CUB"
     dataDirOmniglot = "./data/Omniglot"
-    subDir = ""
+    subDir = "testAdv/"
 
     if args.learning:
         args.novelty = False # Novelty detection is disabled during learning threshold
+        args.way = 5
         
+    if args.novelty:
+        args.way += 1 # Added one additional way used for outlier class 
+        
+    print(args.model, args.weights, args.dataset, args.novelty, args.learning, args.shot, args.way, args.query, args.alpha)
     #image_size = 28 # Omniglot
     #image_size = 84 # CUB dataset
 
@@ -241,25 +280,27 @@ if __name__=='__main__':
     #     num_classes=num_classes,
     # ).to(DEVICE)
     
-    model, modelName, feat_dim = load_model(args.model, args.weights)
+    model, modelName, feat_dim = load_model(args.model, args.weights, args.alpha)
 
     #few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
     
     if args.learning:
         few_shot_classifiers =  [ 
                                  ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)]
+                                # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)]
                                 ]
     else:
         few_shot_classifiers =  [ 
                                  # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                                  ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)],
+                                 ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=1)],
+                                 # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)],
                                  #["PrototypicalNetworks", PrototypicalNetworks(model)], #No
                                  #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                                  #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
                                  #["SimpleShot", SimpleShot(model)], No - too simple
                                #  ["Finetune", Finetune(model)], 
                                  # #["FEAT", FEAT(model)], - error few-shot and novelty
-                               #  ["BD-CSPN", BDCSPN(model)], 
+                                 ["BD-CSPN", BDCSPN(model)], 
                                  #["LaplacianShot", LaplacianShot(model)], No - special
                                  # #["PT-MAP", PTMAP(model)], No
                                #  ["TIM", TIM(model)]
@@ -267,7 +308,7 @@ if __name__=='__main__':
     
     test_set = load_test_dataset(args.dataset, args.learning)
     
-    subDir = args.weights + '/'
+    #subDir = args.weights + '/'
     if os.path.exists(resDir+subDir) == False:
         os.mkdir(resDir+subDir)
         print("Create result directory", resDir+subDir)
@@ -277,26 +318,48 @@ if __name__=='__main__':
     )
     
     #test(model, test_set, test_sampler, few_shot_classifier, n_workers)
+    novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
+    
     if args.learning:     
-        resFileName = args.dataset + '_' + args.model + "_novelty_learn.txt"
+        resFileName = args.model + '_' + args.dataset + "_novelty_learn.csv"
+    else:
+        resFileName =  args.model + '_' +  args.dataset + "_novelty_test.txt"
+        if args.model == 'resnet12':
+            novelty_th = get_threshold_learned(modelName, args.model, args.weights, "_episodic_novelty_learned", args.shot, useBayesThreshold=True)
+
+    line = "ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier\n"
+    if os.path.exists(resDir+subDir+resFileName):
         resFile = open(resDir+subDir+resFileName, "a")
     else:
-        resFileName = args.dataset + '_' + args.model + '_' + str(n_way) + 'way_' + str(n_shot) +"shot_novelty_test.txt"
         resFile = open(resDir+subDir+resFileName, "w")
-        
-    novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)
+        print(line)
+        resFile.write(line)
+        resFile.flush()                 
+    
+    #novelty_th = 0.8739 # Omniglot, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss.pth (145 Epochs)
+    #novelty_th = 0.8454 # Omniglot, 5-way 5-shot, adv, alpha 0, _episodic_0_AdvLoss.pth (145 Epochs)
 
-    line = "FewShotClassifier,Way,Shot,Query,Accuracy,Threshold,Average,Std\n"
-    resFile.write(line)   
+    #novelty_th = -11.90  # Omniglot, 5-way 5-shot, adv, alpha 0, _episodic_0_AdvLoss.pth (1436 Epochs) - Euclidian - accuracy drops to 0.825 (use_normcorr=3)
+    #novelty_th = 0.8405  # Omniglot, 5-way 5-shot, adv, alpha 0, _episodic_0_AdvLoss.pth (1436 Epochs)
+    #novelty_th = 0.8534  # Omniglot, 5-way 5-shot, adv, alpha 0.1, _episodic_1_AdvLoss.pth (1436 Epochs)
+    #novelty_th = 0.8532  # Omniglot, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss.pth (1436 Epochs)
+    
+    #novelty_th = 0.8392  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.929, novelty = 0.775, 
+    #novelty_th = 0.8244  # euMoths, 5-way 5-shot, adv, alpha 0.2, _AdvLoss_E61_A0_824.pth, accuracy = 0.8607, novelty = 0.736, 
+    
     for few_shot in few_shot_classifiers:
         print(few_shot[0])
         print("Use softmax", few_shot[1].use_softmax)
         few_shot_classifier = few_shot[1].to(DEVICE)
-        accuracy, threshold, avg, std  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                       novelty_th, args.novelty, args.learning, 
-                                                       n_workers, DEVICE)
-        line = few_shot[0] + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' + str(threshold) + ',' + str(avg) + ',' + str(std) + '\n'
+        accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                                     novelty_th, args.novelty, args.learning, 
+                                                                     n_workers, DEVICE)
+        line = modelName + ',' + few_shot[0] + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' 
+        line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + '\n'
+        print(line)
         resFile.write(line)    
+        resFile.flush()                 
+
     resFile.close()
     print("Result saved to", resFileName)
     

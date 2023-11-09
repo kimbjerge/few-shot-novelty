@@ -165,14 +165,18 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                         wrong_scores[idx]=correct_episodes[i][j]
                         idx += 1
                        
-            ScatterWithin = correct_scores.var() + wrong_scores.var() 
+            ScatterWithin = correct_scores.var() + wrong_scores.var()
             ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
             #sloss = 1 - ScatterBetween # Mean only
             #sloss = ScatterWithin # Variance only
             sloss = ScatterWithin/ScatterBetween # Variance and mean      
  
             closs = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
-            loss = alpha*sloss + closs
+            if torch.isnan(sloss):
+                print("sloss nan")
+                loss = closs 
+            else:
+                loss = alpha*sloss + closs
             loss.backward()
             optimizer.step()
 
@@ -190,8 +194,10 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
     entropyLossFunction = nn.CrossEntropyLoss()
     
     #scheduler_milestones = [10, 30]
-    scheduler_milestones = [60, 120] # From scratch with 200 epochs
-    #scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+    if n_epochs < 1000:
+        scheduler_milestones = [60, 120] # From scratch with 200 epochs
+    else:
+        scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
     scheduler_gamma = 0.1
     learning_rate = 1e-1 # 1e-2
     tb_logs_dir = Path("./logs")   
@@ -257,9 +263,10 @@ if __name__=='__main__':
     parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
     parser.add_argument('--epochs', default=10, type=int) # epochs
     parser.add_argument('--alpha', default=0.1, type=float) # 
+    parser.add_argument('--pretrained', default='', type=bool) # Default pretrained weigts is false
     args = parser.parse_args()
  
-    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha)
+    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha, args.pretrained)
       
     dataDir = './data/' + args.dataset
     image_size = 224 # ResNet euMoths and CUB
@@ -337,7 +344,7 @@ if __name__=='__main__':
     )
     
     #%% Create model and prepare for training
-    DEVICE = "cuda:2"
+    DEVICE = "cuda:0"
     #DEVICE = "cpu"
     
     num_classes = len(set(train_set.get_labels()))
@@ -353,21 +360,21 @@ if __name__=='__main__':
     if args.model == 'resnet50':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
-        NetModel = resnet50(pretrained=False).to(DEVICE)    
+        NetModel = resnet50(pretrained=args.pretrained).to(DEVICE)    
         modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
-        NetModel = resnet34(pretrained=False).to(DEVICE)
+        NetModel = resnet34(pretrained=args.pretrained).to(DEVICE)
         modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
-        NetModel = resnet18(pretrained=False).to(DEVICE) 
+        NetModel = resnet18(pretrained=args.pretrained).to(DEVICE) 
         modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
