@@ -20,7 +20,7 @@ from tqdm import tqdm
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
 
 from easyfsl.modules import resnet12
-from easyfsl.methods import PrototypicalNetworks, FewShotClassifier, Finetune
+from easyfsl.methods import PrototypicalNetworks, FewShotClassifier
 from easyfsl.samplers import TaskSampler
 from easyfsl.utils import evaluate
 
@@ -63,14 +63,21 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
     return mean(all_loss)
 
 
-def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  n_epochs=200):
+def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  pretrained=False, n_epochs=200):
 
     #scheduler_milestones = [3, 6]
-    scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
-    #scheduler_milestones = [70, 140] # From scratch with 200 epochs
+    if n_epochs < 1000:
+        scheduler_milestones = [70, 140] # From scratch with 200 epochs
+    else:
+        scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+    
+    # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
+    if pretrained:
+        learning_rate = 5e-4
+    else:
+        learning_rate = 0.1
+
     scheduler_gamma = 0.1
-    #learning_rate = 5e-4 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
-    learning_rate = 0.1 # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
     tb_logs_dir = Path("./logs")
    
     entropyLossFunction = nn.CrossEntropyLoss()
@@ -177,6 +184,7 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                 loss = closs 
             else:
                 loss = alpha*sloss + closs
+                
             loss.backward()
             optimizer.step()
 
@@ -185,9 +193,8 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
             all_sloss.append(sloss.item())
 
             tqdm_train.set_postfix( loss="{:.4f}".format(mean(all_loss)), closs="{:.4f}".format(mean(all_closs)), sloss="{:.4f}".format(mean(all_sloss)) )
-            #tqdm_train.set_postfix( closs="{}".format(mean(all_loss)) )
 
-    return mean(all_loss)
+    return mean(all_loss), mean(all_closs), mean(all_sloss)
 
 def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=1500, alpha=0.1):
     
@@ -219,7 +226,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
     best_epoch = 0
     for epoch in range(n_epochs):
         print(f"Epoch {epoch}")
-        average_loss = train_episodic_epoch(entropyLossFunction, few_shot_classifier, train_loader, train_optimizer, alpha)
+        average_loss, average_closs, average_sloss = train_episodic_epoch(entropyLossFunction, few_shot_classifier, train_loader, train_optimizer, alpha)
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
@@ -233,6 +240,8 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
             print("Best model saved", modelName)
     
         tb_writer.add_scalar("Train/loss", average_loss, epoch)
+        tb_writer.add_scalar("Train/closs", average_closs, epoch)
+        tb_writer.add_scalar("Train/sloss", average_sloss, epoch)
         tb_writer.add_scalar("Val/acc", validation_accuracy, epoch)
     
         # Warn the scheduler that we did an epoch
@@ -258,15 +267,19 @@ if __name__=='__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
-    parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot
-    parser.add_argument('--mode', default='episodic') #classic, episodic
-    parser.add_argument('--cosine', default='', type=bool) # Default use Euclidian distance when no parameter ''
+    parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot, mini_imagenet
+    parser.add_argument('--mode', default='episodic') # classic, episodic
+    parser.add_argument('--cosine', default='', type=bool) # default use Euclidian distance when no parameter ''
     parser.add_argument('--epochs', default=10, type=int) # epochs
-    parser.add_argument('--alpha', default=0.1, type=float) # 
-    parser.add_argument('--pretrained', default='', type=bool) # Default pretrained weigts is false
+    parser.add_argument('--alpha', default=0.1, type=float) # alpha parameter for sloss function
+    parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
+    parser.add_argument('--device', default='cuda:0') # training on cpu or cuda:0-3
+    parser.add_argument('--tasks', default='50', type=int) # training tasks per epoch (*6 queries)
+    parser.add_argument('--batch', default='250', type=int) # training batch size
+    parser.add_argument('--way', default='5', type=int) # n-Ways for episodic training and few-shot validation
     args = parser.parse_args()
  
-    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha, args.pretrained)
+    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha, args.pretrained, args.device, args.tasks, args.batch, args.way)
       
     dataDir = './data/' + args.dataset
     image_size = 224 # ResNet euMoths and CUB
@@ -275,11 +288,9 @@ if __name__=='__main__':
     if  args.model == 'resnet12':
         
         if args.model == 'CUB':
-            n_epochs = 200 # Trained from scratch
             image_size = 84 # CUB dataset
         
         if args.dataset == 'Omniglot':
-            #n_epochs = 15 # Trained from scratch - episodic use 50
             image_size = 28 # Omniglot dataset
             
     #image_size = 300 # EfficientNet B3
@@ -293,16 +304,14 @@ if __name__=='__main__':
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    batch_size = 256
-    #batch_size = 128
-    #batch_size = 64
+    batch_size = args.batch
     n_workers = 6
  
-    n_way = 5 # 5 or 20 paper did
-    n_shot = 5 # Use 3 shot for validation, for episodic training use 5 shot
+    n_way = args.way # 5 or 20 paper did
+    n_shot = 5 # For episodic training use 5 shot
     n_query = 6
-    n_tasks_per_epoch = 50
-    n_validation_tasks = 30
+    n_tasks_per_epoch = args.tasks
+    n_validation_tasks = 50
     n_test_tasks = 200
    
     # Training dataset
@@ -344,8 +353,7 @@ if __name__=='__main__':
     )
     
     #%% Create model and prepare for training
-    DEVICE = "cuda:0"
-    #DEVICE = "cpu"
+    DEVICE = args.device
     
     num_classes = len(set(train_set.get_labels()))
     print("Training classes", num_classes)
@@ -361,21 +369,21 @@ if __name__=='__main__':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
         NetModel = resnet50(pretrained=args.pretrained).to(DEVICE)    
-        modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"
+        modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
         NetModel = resnet34(pretrained=args.pretrained).to(DEVICE)
-        modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"   
+        modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
         NetModel = resnet18(pretrained=args.pretrained).to(DEVICE) 
-        modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + "_AdvLoss.pth"
+        modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet12':
@@ -396,7 +404,7 @@ if __name__=='__main__':
     
     if args.mode == 'classic':
         print("Classic training epochs", n_epochs)
-        best_state, model, best_epoch = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs)
+        best_state, model, best_epoch = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, pretrained=args.pretrained, n_epochs=n_epochs)
         model.set_use_fc(False)       
         model.load_state_dict(best_state)
 
