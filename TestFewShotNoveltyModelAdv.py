@@ -43,6 +43,7 @@ def load_model(argsModel, argsWeights, argsAlpha):
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         #modelName = "./models/Resnet50_"+argsWeights+"_model.pth"
         #modelName = "./models/Resnet50_"+argsWeights+"_classic_pretrained.pth"
+        
         #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E61_A0_824.pth"
         #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E367_A0_836.pth"
         modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E1029_A0_922.pth"
@@ -52,7 +53,9 @@ def load_model(argsModel, argsWeights, argsAlpha):
         ResNetModel = resnet34(pretrained=True) # 80.86, 25.6M
         model = EmbeddingsModel(ResNetModel, num_classes, use_fc=False)
         #modelName = "./models/Resnet34_"+argsWeights+"_model.pth"
-        modelName = "./models/Resnet34_"+argsWeights+"_classic_pretrained.pth"
+        #modelName = "./models/Resnet34_"+argsWeights+"_classic_pretrained.pth"
+        
+        modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_AdvLoss_E1223_A0_877.pth"
         feat_dim = 512
     if argsModel == 'resnet18':
         #print('resnet18')
@@ -201,13 +204,13 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     
-    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    # parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='euMoths') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet34') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='euMoths') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
     
     # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
@@ -217,7 +220,7 @@ if __name__=='__main__':
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
+    parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
@@ -307,12 +310,12 @@ if __name__=='__main__':
                                  #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                                  #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
                                  #["SimpleShot", SimpleShot(model)], No - too simple
-                               #  ["Finetune", Finetune(model)], 
+                                 ["Finetune", Finetune(model)], 
                                  # #["FEAT", FEAT(model)], - error few-shot and novelty
                                  ["BD-CSPN", BDCSPN(model)], 
                                  #["LaplacianShot", LaplacianShot(model)], No - special
                                  # #["PT-MAP", PTMAP(model)], No
-                               #  ["TIM", TIM(model)]
+                                 ["TIM", TIM(model)]
                                 ]
     
     test_set = load_test_dataset(args.dataset, args.learning)
@@ -334,7 +337,7 @@ if __name__=='__main__':
         line = "ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier\n"
     else:
         resFileName =  args.model + '_' +  args.dataset + "_novelty_test.txt"
-        line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,ModelName\n"
+        line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
         if "bayes" in args.threshold:
             useBayesThreshold = True
             args.threshold = "bayes"
@@ -364,9 +367,11 @@ if __name__=='__main__':
     #novelty_th = 0.8534  # Omniglot, 5-way 5-shot, adv, alpha 0.1, _episodic_1_AdvLoss.pth (1436 Epochs)
     #novelty_th = 0.8532  # Omniglot, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss.pth (1436 Epochs)
     
-    #novelty_th = 0.8392  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.929, novelty = 0.775, 
-    #novelty_th = 0.8244  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E61_A0_824.pth, accuracy = 0.8607, novelty = 0.736, 
-    novelty_th = 0.8314  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E1029_A0_922.pth
+    #novelty_th = 0.8392  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.929, novelty = 0.775,  (resnet50)
+    #novelty_th = 0.8244  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E61_A0_824.pth, accuracy = 0.8607, novelty = 0.736,  (resnet50)
+    #novelty_th = 0.8314  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E1029_A0_922.pth (resnet50)
+    #novelty_th = 0.7494  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E1223_A0_877.pth (resnet34) few-shot 0.897 and novelty 0.801 
+    novelty_th = 0.8148   # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.945, novelty = 0.775, 
     
     if args.learning:     
     
@@ -399,7 +404,7 @@ if __name__=='__main__':
             line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
             line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
             line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
-            line += args.threshold + ',' + str(threshold) + ',' + modelName +  '\n'
+            line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + modelName +  '\n'
             print(line)
             resFile.write(line)    
             resFile.flush()
