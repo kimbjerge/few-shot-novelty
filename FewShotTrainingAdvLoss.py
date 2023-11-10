@@ -69,7 +69,7 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     if n_epochs < 1000:
         scheduler_milestones = [70, 140] # From scratch with 200 epochs
     else:
-        scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+        scheduler_milestones = [500, 1000, 1250] # From scratch with 1500 epochs
     
     # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
     if pretrained:
