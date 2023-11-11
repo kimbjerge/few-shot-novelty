@@ -204,7 +204,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
     if n_epochs < 1000:
         scheduler_milestones = [60, 120] # From scratch with 200 epochs
     else:
-        scheduler_milestones = [500, 1000] # From scratch with 1500 epochs
+        scheduler_milestones = [500, 1000, 1250] # From scratch with 1500 epochs
     scheduler_gamma = 0.1
     learning_rate = 1e-1 # 1e-2
     tb_logs_dir = Path("./logs")   
@@ -311,7 +311,7 @@ if __name__=='__main__':
     n_shot = 5 # For episodic training use 5 shot
     n_query = 6
     n_tasks_per_epoch = args.tasks
-    n_validation_tasks = 50
+    n_validation_tasks = 75
     n_test_tasks = 200
    
     # Training dataset
