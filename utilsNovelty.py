@@ -490,6 +490,7 @@ def evaluate(
             plt.plot(listBTh, listPb, 'g')
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine Similarity')
+            plt.xlim(0.2, 1.0)
             plt.ylabel('Probability (%)')
             plt.title('Distribution of TN (red) and TP (blue) (th>%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
