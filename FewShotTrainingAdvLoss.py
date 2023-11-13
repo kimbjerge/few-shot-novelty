@@ -13,6 +13,7 @@ import torch
 from statistics import mean
 from torch import nn
 from tqdm import tqdm
+from datetime import datetime
 
 #from easyfsl.datasets import CUB
 #from easyfsl.datasets import EasySet
@@ -63,13 +64,14 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
     return mean(all_loss)
 
 
-def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  pretrained=False, n_epochs=200):
+def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  
+                 pretrained=False, m1=500, m2=1000, n_epochs=200):
 
     #scheduler_milestones = [3, 6]
     if n_epochs < 1000:
         scheduler_milestones = [70, 140] # From scratch with 200 epochs
     else:
-        scheduler_milestones = [500, 1000, 1250] # From scratch with 1500 epochs
+        scheduler_milestones = [m1, m2] # From scratch with 1500 epochs
     
     # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
     if pretrained:
@@ -78,7 +80,6 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
         learning_rate = 0.1
 
     scheduler_gamma = 0.1
-    tb_logs_dir = Path("./logs")
    
     entropyLossFunction = nn.CrossEntropyLoss()
    
@@ -91,7 +92,10 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
         gamma=scheduler_gamma,
     )
     
-    tb_writer = SummaryWriter(log_dir=str(tb_logs_dir))
+    #tb_logs_dir = Path("./logs")   
+    #tb_writer = SummaryWriter(log_dir=str(tb_logs_dir))
+    log_dir = '-' + modelName.split('/')[2].replace(".pth", "")
+    tb_writer = SummaryWriter(comment=log_dir)
     
     best_state = model.state_dict()
     best_validation_accuracy = 0.0
@@ -112,7 +116,7 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
             model.set_use_fc(True)
     
             if validation_accuracy > best_validation_accuracy:
-                best_epoch = epoch
+                best_epoch = epoch+1
                 best_validation_accuracy = validation_accuracy
                 best_state = model.state_dict()
                 print("Ding ding ding! We found a new best model!")
@@ -129,17 +133,19 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     
     print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
     
-    return best_state, model, best_epoch
+    return best_state, model, best_epoch, best_validation_accuracy
     
 #%% Episodic training      
 def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss, 
                          model: FewShotClassifier, 
                          data_loader: DataLoader, 
                          optimizer: Optimizer,
+                         slossFunc,
                          alpha):
     all_loss = []
     all_closs = []
     all_sloss = []
+    all_scatter_between = []
     model.train()
     with tqdm(
         enumerate(data_loader), total=len(data_loader), desc="Training"
@@ -171,15 +177,18 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                     if j != correct_pred_idx[i]:
                         wrong_scores[idx]=correct_episodes[i][j]
                         idx += 1
-                       
-            ScatterWithin = correct_scores.var() + wrong_scores.var()
+            
+            ScatterWithin = 1 # Mean only
+            if slossFunc == "Var": # Mean and variance   
+                ScatterWithin = correct_scores.var() + wrong_scores.var()
+            if slossFunc == "Std": # Mean and standard deviation
+                ScatterWithin = correct_scores.std() + wrong_scores.std()
+            
             ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
-            #sloss = 1 - ScatterBetween # Mean only
-            #sloss = ScatterWithin # Variance only
-            sloss = ScatterWithin/ScatterBetween # Variance and mean      
- 
+            sloss = ScatterWithin/ScatterBetween # Minimize scatter within related to scatter between      
             closs = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
-            if torch.isnan(sloss):
+ 
+            if torch.isnan(sloss): # Handling division with zero
                 print("sloss nan")
                 loss = closs 
             else:
@@ -191,12 +200,17 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
             all_loss.append(loss.item())
             all_closs.append(closs.item())
             all_sloss.append(sloss.item())
+            all_scatter_between.append(ScatterBetween.item())
 
-            tqdm_train.set_postfix( loss="{:.4f}".format(mean(all_loss)), closs="{:.4f}".format(mean(all_closs)), sloss="{:.4f}".format(mean(all_sloss)) )
+            tqdm_train.set_postfix( loss="{:.4f}".format(mean(all_loss)), 
+                                    closs="{:.4f}".format(mean(all_closs)), 
+                                    sloss="{:.4f}".format(mean(all_sloss)) )
 
-    return mean(all_loss), mean(all_closs), mean(all_sloss)
+    return mean(all_loss), mean(all_closs), mean(all_sloss), mean(all_scatter_between)
 
-def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=1500, alpha=0.1):
+
+def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, 
+                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean"):
     
     entropyLossFunction = nn.CrossEntropyLoss()
     
@@ -204,10 +218,9 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
     if n_epochs < 1000:
         scheduler_milestones = [60, 120] # From scratch with 200 epochs
     else:
-        scheduler_milestones = [500, 1000, 1250] # From scratch with 1500 epochs
+        scheduler_milestones = [m1, m2] # From scratch with 1500 epochs
     scheduler_gamma = 0.1
     learning_rate = 1e-1 # 1e-2
-    tb_logs_dir = Path("./logs")   
     
     train_optimizer = SGD(
         few_shot_classifier.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4
@@ -218,22 +231,29 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
         gamma=scheduler_gamma,
     )
 
-    tb_writer = SummaryWriter(log_dir=str(tb_logs_dir))
+    #tb_logs_dir = Path("./logs")   
+    #tb_writer = SummaryWriter(log_dir=str(tb_logs_dir))
+    log_dir = '-' + modelName.split('/')[2].replace(".pth", "")
+    tb_writer = SummaryWriter(comment=log_dir)
 
     # Train model
     best_state = few_shot_classifier.state_dict()
     best_validation_accuracy = 0.0
+    best_scatter_between = 0.0
     best_epoch = 0
     for epoch in range(n_epochs):
         print(f"Epoch {epoch}")
-        average_loss, average_closs, average_sloss = train_episodic_epoch(entropyLossFunction, few_shot_classifier, train_loader, train_optimizer, alpha)
+        average_loss, average_closs, average_sloss, average_scatter_between = train_episodic_epoch(entropyLossFunction, 
+                                                                                                   few_shot_classifier, train_loader, 
+                                                                                                   train_optimizer, slossFunc, alpha)
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
     
         if validation_accuracy > best_validation_accuracy:
-            best_epoch = epoch
+            best_epoch = epoch+1
             best_validation_accuracy = validation_accuracy
+            best_scatter_between = average_scatter_between
             best_state = few_shot_classifier.state_dict()
             print("Ding ding ding! We found a new best model!")
             torch.save(few_shot_classifier.backbone, modelName)
@@ -250,7 +270,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_ep
 
     print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
 
-    return best_state, few_shot_classifier, best_epoch
+    return best_state, few_shot_classifier, best_epoch, best_validation_accuracy, best_scatter_between
 
 
 #%% Few shot testing of model        
@@ -261,6 +281,36 @@ def test(model, test_loader, few_shot_classifier, n_workers, DEVICE):
     accuracy = evaluate(few_shot_classifier, test_loader, device=DEVICE, tqdm_prefix="Test")
     return accuracy
 
+#%% Saving result to file  
+def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetween):
+    
+    with open(modelName.replace('.pth', '.txt'), 'w') as f:
+        line = "model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,device,trainTasks,"
+        line += "valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,modelName\n"
+        f.write(line)
+        line = args.model + ','
+        line += args.dataset + ','
+        line += args.mode + ',' 
+        line += str(args.cosine) + ',' 
+        line += str(args.epochs) + ',' 
+        line += str(args.m1) + ','
+        line += str(args.m2)  + ','
+        line += args.slossFunc + ',' 
+        line += str(args.alpha) + ','
+        line += str(args.pretrained) + ',' 
+        line += args.device + ','
+        line += str(args.tasks) + ',' 
+        line += str(args.valTasks) + ','
+        line += str(args.batch) + ',' 
+        line += str(args.way) + ','
+        line += str(args.query) + ','
+        line += str(best_epoch) + ','
+        line += str(valAccuracy) + ','
+        line += str(testAccuracy) + ','
+        line += str(scatterBetween) + ',' 
+        line += modelName + '\n'
+        print(line)
+        f.write(line)        
 
 #%% MAIN
 if __name__=='__main__':
@@ -270,17 +320,20 @@ if __name__=='__main__':
     parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot, mini_imagenet
     parser.add_argument('--mode', default='episodic') # classic, episodic
     parser.add_argument('--cosine', default='', type=bool) # default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=10, type=int) # epochs
-    parser.add_argument('--alpha', default=0.1, type=float) # alpha parameter for sloss function
+    parser.add_argument('--epochs', default=1, type=int) # epochs
+    parser.add_argument('--m1', default=500, type=int) # learning rate scheduler for milstone 1 (epochs)
+    parser.add_argument('--m2', default=1000, type=int) # learning rate scheduler for rate milstone 2 (epochs)
+    parser.add_argument('--slossFunc', default='Var') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean)
+    parser.add_argument('--alpha', default=0.1, type=float) # alpha parameter for sloss function (0-1)
     parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
     parser.add_argument('--device', default='cuda:0') # training on cpu or cuda:0-3
     parser.add_argument('--tasks', default='50', type=int) # training tasks per epoch (*6 queries)
+    parser.add_argument('--valTasks', default='75', type=int) # tasks used for validation
     parser.add_argument('--batch', default='250', type=int) # training batch size
     parser.add_argument('--way', default='5', type=int) # n-Ways for episodic training and few-shot validation
+    parser.add_argument('--query', default='6', type=int) # n-Query for episodic training and few-shot validation
     args = parser.parse_args()
  
-    print(args.model, args.dataset, args.mode, args.cosine, args.epochs, args.alpha, args.pretrained, args.device, args.tasks, args.batch, args.way)
-      
     dataDir = './data/' + args.dataset
     image_size = 224 # ResNet euMoths and CUB
     n_epochs = args.epochs # ImageNet pretrained weights - finetuning
@@ -305,13 +358,13 @@ if __name__=='__main__':
     torch.backends.cudnn.benchmark = False
     
     batch_size = args.batch
-    n_workers = 6
+    n_workers = 12
  
     n_way = args.way # 5 or 20 paper did
     n_shot = 5 # For episodic training use 5 shot
-    n_query = 6
+    n_query = args.query
     n_tasks_per_epoch = args.tasks
-    n_validation_tasks = 75
+    n_validation_tasks = args.valTasks
     n_test_tasks = 200
    
     # Training dataset
@@ -364,36 +417,39 @@ if __name__=='__main__':
     #NetModel = efficientnet_b4(pretrained=True)                 # 83.384, 19.3M   
     #NetModel = efficientnet_b3(pretrained=True)                 # 82.003, 12.3M   
     #modelName = "./models/EffnetB4_euMoths_model.pth"
-    
+      
+    now = datetime.now()
+    dateTime = now.strftime("%m%d_%H%M%S")
     if args.model == 'resnet50':
         print('resnet50')
         #NetModel = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2) # 80.858, 25.6M
         NetModel = resnet50(pretrained=args.pretrained).to(DEVICE)    
-        modelName = "./models/Resnet50_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"
+        modelName = "./modelsAdv/Resnet50_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + '_' + dateTime + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet34':
         print('resnet34')
         #NetModel = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1) # 73.314, 21.8M
         NetModel = resnet34(pretrained=args.pretrained).to(DEVICE)
-        modelName = "./models/Resnet34_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"   
+        modelName = "./modelsAdv/Resnet34_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10))  + '_' + dateTime + "_AdvLoss.pth"   
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet18':
         print('resnet18')
         #NetModel = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1) # 69.758, 11.7M
         NetModel = resnet18(pretrained=args.pretrained).to(DEVICE) 
-        modelName = "./models/Resnet18_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"
+        modelName = "./modelsAdv/Resnet18_" + args.dataset + '_' + args.mode  + '_' + str(int(args.alpha*10)) + '_' + dateTime + "_AdvLoss.pth"
         model = EmbeddingsModel(NetModel, num_classes, use_softmax=False, use_fc=n_use_fc)
         
     if args.model == 'resnet12':
         print('resnet12')
-        modelName = "./models/Resnet12_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + "_AdvLoss.pth"  
+        modelName = "./modelsAdv/Resnet12_" + args.dataset + '_' + args.mode + '_' + str(int(args.alpha*10)) + '_' + dateTime +"_AdvLoss.pth"  
         # This model is not retrained, but trained from scratch
         model = resnet12(use_fc=n_use_fc, num_classes=num_classes).to(DEVICE)
         
     model = model.to(DEVICE)
     print("Saving model as", modelName)
+    saveArgs(modelName, args, 0, 0, 0, 0)
 
     if args.cosine:
         few_shot_classifier = PrototypicalNetworksNovelty(model).to(DEVICE)
@@ -402,17 +458,22 @@ if __name__=='__main__':
         few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
         print("Use prototypical network with euclidian distance to validate")
     
+    best_scatter_between = 0
     if args.mode == 'classic':
         print("Classic training epochs", n_epochs)
-        best_state, model, best_epoch = classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier, pretrained=args.pretrained, n_epochs=n_epochs)
+        best_state, model, best_epoch, best_accuracy = classicTrain(model, modelName, train_loader, val_loader, 
+                                                                    few_shot_classifier, pretrained=args.pretrained,  
+                                                                    m1=args.m1, m2=args.m2, n_epochs=n_epochs)
         model.set_use_fc(False)       
         model.load_state_dict(best_state)
 
     if args.mode == 'episodic':
         print("Episodic training epochs", n_epochs)
-        best_state, model, best_epoch = episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, n_epochs=n_epochs, alpha=args.alpha)
+        best_state, model, best_epoch, best_accuracy, best_scatter_between = episodicTrain(modelName, train_loader, val_loader, 
+                                                                                           few_shot_classifier, m1=args.m1, m2=args.m2, 
+                                                                                           n_epochs=n_epochs, alpha=args.alpha, 
+                                                                                           slossFunc=args.slossFunc)
         few_shot_classifier.load_state_dict(best_state)
-    
     
     test_set = FewShotDataset(split="test", image_size=image_size, root=dataDir, training=False)
     test_sampler = TaskSampler(
@@ -427,7 +488,13 @@ if __name__=='__main__':
     )
     accuracy = test(model, test_loader, few_shot_classifier, n_workers, DEVICE)
     
-    textLine = f"Average accuracy : {(100 * accuracy):.2f} % " + args.model + "," + args.dataset + "," + str(args.alpha) + "," + str(best_epoch) + "," +  modelName + '\n'
+    saveArgs(modelName, args, best_epoch, best_accuracy, accuracy, best_scatter_between)
+
+    textLine = f"Accuracy val/test : {(100 * best_accuracy):.2f}%/{(100 * accuracy):.2f}%," + args.model + "," + args.dataset 
+    textLine += "," + args.slossFunc + ',' + str(args.alpha) + "," + str(best_epoch) + "," +  modelName + '\n'
     print(textLine)
     with open('ResultTrainAdvLoss.txt', 'a') as f:
         f.write(textLine)
+
+        
+    
