@@ -243,7 +243,7 @@ if __name__=='__main__':
             )
                                 
         
-            resFileName = args.model + '_' + args.dataset + "_novelty_learn.csv"
+            resFileName = args.model + '_' + args.dataset + "_novelty_learn.txt"
             line = "ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
@@ -290,12 +290,6 @@ if __name__=='__main__':
             else:
                 novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)    
 
-            test_set = load_test_dataset(args.dataset, args.learning)
-                            
-            test_sampler = TaskSampler(
-                test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
-            )
-
             few_shot_classifiers =  [ 
                                      # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
                                      ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)],
@@ -311,22 +305,30 @@ if __name__=='__main__':
                                      # #["PT-MAP", PTMAP(model)], No
                                      ["TIM", TIM(model)]
                                     ]
-                              
-            for few_shot in few_shot_classifiers:
-                print(few_shot[0])
-                print("Use softmax", few_shot[1].use_softmax)
-                few_shot_classifier = few_shot[1].to(DEVICE)
-                metric = Metrics()
-                accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                            novelty_th, args.novelty, args.learning, 
-                                                                            n_workers, metric, DEVICE)
-                line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
-                line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
-                line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
-                line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
-                print(line)
-                resFile.write(line)    
-                resFile.flush()
                 
+            test_set = load_test_dataset(args.dataset, args.learning)
+            
+            for n_shot in [5, 1]:                
+                
+                test_sampler = TaskSampler(
+                    test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
+                )
+                                  
+                for few_shot in few_shot_classifiers:
+                    print(few_shot[0])
+                    print("Use softmax", few_shot[1].use_softmax)
+                    few_shot_classifier = few_shot[1].to(DEVICE)
+                    metric = Metrics()
+                    accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                                                novelty_th, args.novelty, args.learning, 
+                                                                                n_workers, metric, DEVICE)
+                    line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
+                    line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
+                    line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
+                    line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
+                    print(line)
+                    resFile.write(line)    
+                    resFile.flush()
+                    
             resFile.close()
             print("Result saved to", resFileName)
