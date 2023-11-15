@@ -65,7 +65,7 @@ def train_epoch(entropyLossFunction: nn.CrossEntropyLoss,
 
 
 def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier,  
-                 pretrained=False, m1=500, m2=1000, n_epochs=200):
+                 pretrained=False, m1=500, m2=1000, n_epochs=200, learnRate=5e-4):
 
     #scheduler_milestones = [3, 6]
     if n_epochs < 1000:
@@ -74,10 +74,12 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
         scheduler_milestones = [m1, m2] # From scratch with 1500 epochs
     
     # 1e-1 - without pretrained weights 5e-4 - with pretrained weights
-    if pretrained:
-        learning_rate = 5e-4
-    else:
-        learning_rate = 0.1
+    #if pretrained:
+    #    learning_rate = 5e-4
+    #else:
+    #    learning_rate = 0.1
+        
+    learning_rate = learnRate
 
     scheduler_gamma = 0.1
    
@@ -192,7 +194,7 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
                 print("sloss nan")
                 loss = closs 
             else:
-                loss = alpha*sloss + closs
+                loss = alpha*sloss + (1-alpha)*closs
                 
             loss.backward()
             optimizer.step()
@@ -210,7 +212,7 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
 
 
 def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, 
-                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean"):
+                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean", learnRate=0.1):
     
     entropyLossFunction = nn.CrossEntropyLoss()
     
@@ -219,8 +221,9 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
         scheduler_milestones = [60, 120] # From scratch with 200 epochs
     else:
         scheduler_milestones = [m1, m2] # From scratch with 1500 epochs
+        
     scheduler_gamma = 0.1
-    learning_rate = 1e-1 # 1e-2
+    learning_rate = learnRate # 1e-2
     
     train_optimizer = SGD(
         few_shot_classifier.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4
@@ -285,7 +288,7 @@ def test(model, test_loader, few_shot_classifier, n_workers, DEVICE):
 def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetween):
     
     with open(modelName.replace('.pth', '.txt'), 'w') as f:
-        line = "model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,device,trainTasks,"
+        line = "model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,"
         line += "valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,modelName\n"
         f.write(line)
         line = args.model + ','
@@ -297,7 +300,8 @@ def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetw
         line += str(args.m2)  + ','
         line += args.slossFunc + ',' 
         line += str(args.alpha) + ','
-        line += str(args.pretrained) + ',' 
+        line += str(args.pretrained) + ','
+        line += str(args.learnRate) + ','
         line += args.device + ','
         line += str(args.tasks) + ',' 
         line += str(args.valTasks) + ','
@@ -332,6 +336,7 @@ if __name__=='__main__':
     parser.add_argument('--batch', default='250', type=int) # training batch size
     parser.add_argument('--way', default='5', type=int) # n-Ways for episodic training and few-shot validation
     parser.add_argument('--query', default='6', type=int) # n-Query for episodic training and few-shot validation
+    parser.add_argument('--learnRate', default='0.1', type=float) # learn rate for episodic and classic training
     args = parser.parse_args()
  
     dataDir = './data/' + args.dataset
@@ -463,7 +468,8 @@ if __name__=='__main__':
         print("Classic training epochs", n_epochs)
         best_state, model, best_epoch, best_accuracy = classicTrain(model, modelName, train_loader, val_loader, 
                                                                     few_shot_classifier, pretrained=args.pretrained,  
-                                                                    m1=args.m1, m2=args.m2, n_epochs=n_epochs)
+                                                                    m1=args.m1, m2=args.m2, n_epochs=n_epochs, 
+                                                                    learnRate=args.learnRate)
         model.set_use_fc(False)       
         model.load_state_dict(best_state)
 
@@ -472,7 +478,8 @@ if __name__=='__main__':
         best_state, model, best_epoch, best_accuracy, best_scatter_between = episodicTrain(modelName, train_loader, val_loader, 
                                                                                            few_shot_classifier, m1=args.m1, m2=args.m2, 
                                                                                            n_epochs=n_epochs, alpha=args.alpha, 
-                                                                                           slossFunc=args.slossFunc)
+                                                                                           slossFunc=args.slossFunc,
+                                                                                           learnRate=args.learnRate)
         few_shot_classifier.load_state_dict(best_state)
     
     test_set = FewShotDataset(split="test", image_size=image_size, root=dataDir, training=False)

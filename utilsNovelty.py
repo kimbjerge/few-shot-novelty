@@ -368,9 +368,9 @@ def evaluate_on_one_task(
         number_of_correct_predictions = (
             (minDistIdx == query_labels).sum().item()
         )
-        if learn_th:
+        #if learn_th:
             #print(np.mean(predictions_true)-2*np.std(predictions_true))
-            print("Th, avg, std", np.mean(predictions_true)-2*np.std(predictions_true), np.mean(predictions_true), np.std(predictions_true))
+        #    print("Th, avg, std", np.mean(predictions_true)-2*np.std(predictions_true), np.mean(predictions_true), np.std(predictions_true))
  
     if metric != None:
         metric.calcMetrics(minDistIdx, query_labels)
@@ -491,6 +491,7 @@ def evaluate(
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine Similarity')
             plt.xlim(0.2, 1.0)
+            plt.ylim(0.0, 20.0)
             plt.ylabel('Probability (%)')
             plt.title('Distribution of TN (red) and TP (blue) (th>%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
