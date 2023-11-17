@@ -332,7 +332,7 @@ def evaluate_on_one_task(
         #Below line of code is wrong!
         #wrong_predictions = predictions[torch.max(predictions, 1)[1] != query_labels].reshape(-1)
 
-        correct_episodes = predictions[torch.max(predictions, 1)[1] == query_labels]
+        correct_episodes = predictions[torch.max(predictions, 1)[1] == query_labels.cpu()]
         correct_scores = correct_episodes.max(1)[0]
         correct_pred_idx = correct_episodes.max(1)[1]            
         
