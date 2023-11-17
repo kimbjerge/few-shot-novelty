@@ -103,6 +103,7 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     best_validation_accuracy = 0.0
     validation_frequency = 5
     best_epoch = 0
+    best_loss = 1000.0
     for epoch in range(n_epochs):
         print(f"Epoch {epoch}")
         average_loss = train_epoch(entropyLossFunction, model, train_loader, train_optimizer)
@@ -119,6 +120,7 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     
             if validation_accuracy > best_validation_accuracy:
                 best_epoch = epoch+1
+                best_loss = average_loss
                 best_validation_accuracy = validation_accuracy
                 best_state = model.state_dict()
                 print("Ding ding ding! We found a new best model!")
@@ -135,7 +137,7 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     
     print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
     
-    return best_state, model, best_epoch, best_validation_accuracy
+    return best_state, model, best_epoch, best_validation_accuracy, best_loss
     
 #%% Episodic training      
 def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss, 
@@ -212,7 +214,7 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
 
 
 def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, 
-                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean", learnRate=0.1):
+                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean", learnRate=0.1, pretrained=False):
     
     entropyLossFunction = nn.CrossEntropyLoss()
     
@@ -241,6 +243,7 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
 
     # Train model
     best_state = few_shot_classifier.state_dict()
+    best_loss = 1000.0
     best_validation_accuracy = 0.0
     best_scatter_between = 0.0
     best_epoch = 0
@@ -252,16 +255,26 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
-    
-        if validation_accuracy > best_validation_accuracy:
-            best_epoch = epoch+1
-            best_validation_accuracy = validation_accuracy
-            best_scatter_between = average_scatter_between
-            best_state = few_shot_classifier.state_dict()
-            print("Ding ding ding! We found a new best model!")
-            torch.save(few_shot_classifier.backbone, modelName)
-            print("Best model saved", modelName)
-    
+        
+        if pretrained:    
+            if best_loss > average_loss: 
+                best_epoch = epoch+1
+                best_loss = average_loss
+                best_validation_accuracy = validation_accuracy
+                best_scatter_between = average_scatter_between
+                best_state = few_shot_classifier.state_dict()
+                torch.save(few_shot_classifier.backbone, modelName)
+                print(f"Lowest loss model saved with accuracy {(best_validation_accuracy):.4f} and loss {(best_loss):.4f}", modelName)
+        else:
+            if validation_accuracy > best_validation_accuracy:
+                best_epoch = epoch+1
+                best_loss = average_loss
+                best_validation_accuracy = validation_accuracy
+                best_scatter_between = average_scatter_between
+                best_state = few_shot_classifier.state_dict()
+                torch.save(few_shot_classifier.backbone, modelName)
+                print(f"Best model saved with accuracy {(best_validation_accuracy):.4f} and loss {(best_loss):.4f}", modelName)
+                
         tb_writer.add_scalar("Train/loss", average_loss, epoch)
         tb_writer.add_scalar("Train/closs", average_closs, epoch)
         tb_writer.add_scalar("Train/sloss", average_sloss, epoch)
@@ -271,9 +284,9 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
         # so it knows when to decrease the learning rate
         train_scheduler.step()
 
-    print("Best validation accuracy after epoch", best_validation_accuracy, best_epoch)
+    print(f"Best validation accuracy {(best_validation_accuracy):.4f} with loss {(best_loss):.4f} after epochs", best_epoch)
 
-    return best_state, few_shot_classifier, best_epoch, best_validation_accuracy, best_scatter_between
+    return best_state, few_shot_classifier, best_epoch, best_validation_accuracy, best_scatter_between, best_loss
 
 
 #%% Few shot testing of model        
@@ -285,11 +298,11 @@ def test(model, test_loader, few_shot_classifier, n_workers, DEVICE):
     return accuracy
 
 #%% Saving result to file  
-def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetween):
+def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetween, bestLoss):
     
     with open(modelName.replace('.pth', '.txt'), 'w') as f:
         line = "model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,"
-        line += "valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,modelName\n"
+        line += "valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName\n"
         f.write(line)
         line = args.model + ','
         line += args.dataset + ','
@@ -311,7 +324,8 @@ def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetw
         line += str(best_epoch) + ','
         line += str(valAccuracy) + ','
         line += str(testAccuracy) + ','
-        line += str(scatterBetween) + ',' 
+        line += str(scatterBetween) + ','
+        line += str(bestLoss) + ','
         line += modelName + '\n'
         print(line)
         f.write(line)        
@@ -454,7 +468,7 @@ if __name__=='__main__':
         
     model = model.to(DEVICE)
     print("Saving model as", modelName)
-    saveArgs(modelName, args, 0, 0, 0, 0)
+    saveArgs(modelName, args, 0, 0, 0, 0, 0)
 
     if args.cosine:
         few_shot_classifier = PrototypicalNetworksNovelty(model).to(DEVICE)
@@ -464,22 +478,26 @@ if __name__=='__main__':
         print("Use prototypical network with euclidian distance to validate")
     
     best_scatter_between = 0
+    best_loss = 0
     if args.mode == 'classic':
         print("Classic training epochs", n_epochs)
-        best_state, model, best_epoch, best_accuracy = classicTrain(model, modelName, train_loader, val_loader, 
-                                                                    few_shot_classifier, pretrained=args.pretrained,  
-                                                                    m1=args.m1, m2=args.m2, n_epochs=n_epochs, 
-                                                                    learnRate=args.learnRate)
+        best_state, model, best_epoch, best_accuracy, best_loss = classicTrain(model, modelName, train_loader, val_loader, 
+                                                                               few_shot_classifier, pretrained=args.pretrained,  
+                                                                               m1=args.m1, m2=args.m2, n_epochs=n_epochs, 
+                                                                               learnRate=args.learnRate)
         model.set_use_fc(False)       
         model.load_state_dict(best_state)
 
     if args.mode == 'episodic':
         print("Episodic training epochs", n_epochs)
-        best_state, model, best_epoch, best_accuracy, best_scatter_between = episodicTrain(modelName, train_loader, val_loader, 
-                                                                                           few_shot_classifier, m1=args.m1, m2=args.m2, 
-                                                                                           n_epochs=n_epochs, alpha=args.alpha, 
-                                                                                           slossFunc=args.slossFunc,
-                                                                                           learnRate=args.learnRate)
+        best_state, model, best_epoch, best_accuracy, best_scatter_between, best_loss = episodicTrain(modelName, 
+                                                                                                      train_loader, val_loader, 
+                                                                                                      few_shot_classifier, 
+                                                                                                      m1=args.m1, m2=args.m2, 
+                                                                                                      n_epochs=n_epochs, alpha=args.alpha, 
+                                                                                                      slossFunc=args.slossFunc,
+                                                                                                      learnRate=args.learnRate,
+                                                                                                      pretrained=args.pretrained)
         few_shot_classifier.load_state_dict(best_state)
     
     test_set = FewShotDataset(split="test", image_size=image_size, root=dataDir, training=False)
@@ -495,10 +513,10 @@ if __name__=='__main__':
     )
     accuracy = test(model, test_loader, few_shot_classifier, n_workers, DEVICE)
     
-    saveArgs(modelName, args, best_epoch, best_accuracy, accuracy, best_scatter_between)
+    saveArgs(modelName, args, best_epoch, best_accuracy, accuracy, best_scatter_between, best_loss)
 
     textLine = f"Accuracy val/test : {(100 * best_accuracy):.2f}%/{(100 * accuracy):.2f}%," + args.model + "," + args.dataset 
-    textLine += "," + args.slossFunc + ',' + str(args.alpha) + "," + str(best_epoch) + "," +  modelName + '\n'
+    textLine += "," + args.slossFunc + ',' + str(args.alpha) + "," + str(best_epoch) + "," + f"{(best_loss):.4f}," +  modelName + '\n'
     print(textLine)
     with open('ResultTrainAdvLoss.txt', 'a') as f:
         f.write(textLine)
