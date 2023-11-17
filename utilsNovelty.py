@@ -413,6 +413,9 @@ def evaluate(
     
     total_predictions = 0
     correct_predictions = 0
+    if learn_th:
+        predictions_true.clear()
+        predictions_false.clear()
 
     # eval mode affects the behaviour of some layers (such as batch normalization or dropout)
     # no_grad() tells torch not to keep in memory the whole computational graph
@@ -491,7 +494,9 @@ def evaluate(
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine Similarity')
             plt.xlim(0.2, 1.0)
-            plt.ylim(0.0, 20.0)
+            #plt.ylim(0.0, 10.0) # CUB
+            #plt.ylim(0.0, 15.0) # euMoths
+            plt.ylim(0.0, 20.0) # Omniglot
             plt.ylabel('Probability (%)')
             plt.title('Distribution of TN (red) and TP (blue) (th>%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
