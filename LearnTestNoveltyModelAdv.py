@@ -159,7 +159,10 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--modelDir', default='modelsAutoAdv') #Directory that contains models
+    #parser.add_argument('--modelDir', default='modelsOmniglotAdvStd3') #Directory that contains models
+    #parser.add_argument('--modelDir', default='modelsCUBAdv') #Directory that contains models
+    #parser.add_argument('--modelDir', default='modelsEUMothsAdv') #Directory that contains models
+    parser.add_argument('--modelDir', default='modelsImgNetAdv') #Directory that contains models
     parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     parser.add_argument('--weights', default='') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     parser.add_argument('--dataset', default='') #miniImagenet, euMoths, CUB, Omniglot
@@ -168,7 +171,7 @@ if __name__=='__main__':
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
-    parser.add_argument('--query', default=6, type=int)
+    parser.add_argument('--query', default=10, type=int)
     parser.add_argument('--alpha', default=0.1, type=float)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
     args = parser.parse_args()
@@ -202,11 +205,22 @@ if __name__=='__main__':
             modelNameSplit = modelName.split('_')
             if args.model == '':
                 args.model = modelNameSplit[0].lower()
+                
+            if modelNameSplit[2] == 'imagenet':
+                nameData = "miniImagenet"
+                nameWeights = "mini_imagenet"
+                alpha_idx = 4
+            else:
+                nameData = modelNameSplit[1]
+                nameWeights = nameData
+                alpha_idx = 3
+                
             if args.weights == '':
-                args.weights = modelNameSplit[1]
+                args.weights = nameWeights
             if args.dataset == '':
-                args.dataset = modelNameSplit[1]
-            args.alpha = int(modelNameSplit[3])/10
+                args.dataset = nameData
+
+            args.alpha = int(modelNameSplit[alpha_idx])/10
             
             print(args)
         
@@ -234,15 +248,14 @@ if __name__=='__main__':
             args.learning = True
             args.novelty = False
             args.way = 5
-            n_test_tasks = 50 # 50 learning on validation
+            n_test_tasks = 1000 # 50 learning on validation, 10000 learn images
                
             test_set = load_test_dataset(args.dataset, args.learning)
             
             test_sampler = TaskSampler(
                 test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
             )
-                                
-        
+                                  
             resFileName = args.model + '_' + args.dataset + "_novelty_learn.txt"
             line = "ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween\n"
             if os.path.exists(resDir+subDir+resFileName):
@@ -272,7 +285,7 @@ if __name__=='__main__':
             args.learning = False
             args.novelty = True
             args.way = 6
-            n_test_tasks = 100 # 500 test
+            n_test_tasks = 1000 # 10000 test images
 
             resFileName =  args.model + '_' +  args.dataset + "_novelty_test.txt"
             line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
