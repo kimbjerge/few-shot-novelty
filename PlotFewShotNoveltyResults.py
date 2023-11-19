@@ -31,9 +31,9 @@ def plotAccuracy(dataset, model, n_shot):
  
     ax = plt.gca()
     # Plot bayes vs. std
-    data_few_shot_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='green', ax=ax)
-    data_std_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='blue', ax=ax)
-    data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='red', title=title, ax=ax)
+    data_few_shot_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='green', ax=ax)
+    data_std_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='blue', ax=ax)
+    data_bayes_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='red', title=title, ax=ax)
     ax.set_ylabel("Accuracy")
     ax.legend(["FewShot", "NoveltyStd", "NoveltyBayes"])
     plt.show()
@@ -58,10 +58,10 @@ def plotPrecisionRecall(dataset, model, n_shot):
  
     ax = plt.gca()
     # Plot bayes vs. std
-    data_few_shot_df.plot(kind='line', x='FewShotClassifier',  y='Precision',  color='green', ax=ax)
-    data_few_shot_df.plot(kind='line', x='FewShotClassifier',  y='Recall',  color='blue', ax=ax)
-    data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Precision',  color='red', title=title, ax=ax)
-    data_bayes_df.plot(kind='line', x='FewShotClassifier',  y='Recall',  color='black', title=title, ax=ax)
+    data_few_shot_df.plot(kind='scatter', x='FewShotClassifier',  y='Precision',  color='green', ax=ax)
+    data_few_shot_df.plot(kind='scatter', x='FewShotClassifier',  y='Recall',  color='blue', ax=ax)
+    data_bayes_df.plot(kind='scatter', x='FewShotClassifier',  y='Precision',  color='red', title=title, ax=ax)
+    data_bayes_df.plot(kind='scatter', x='FewShotClassifier',  y='Recall',  color='black', title=title, ax=ax)
     ax.set_ylabel("Class precision or recall")
     ax.legend(["Precision", "Recall", "N-Precision", "N-Recall"])
     plt.show()
@@ -93,12 +93,12 @@ def plotAccuracyModels(dataset, n_shot):
  
     ax = plt.gca()
     # Plot bayes vs. std
-    data_few_shot_18_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='green', ax=ax)
-    data_few_shot_34_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='blue', ax=ax)
-    data_few_shot_50_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='red',  ax=ax)
-    data_novelty_18_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='yellow', ax=ax)
-    data_novelty_34_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='black', ax=ax)
-    data_novelty_50_df.plot(kind='line', x='FewShotClassifier',  y='Accuracy',  color='orange', title=title, ax=ax)
+    data_few_shot_18_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='green', ax=ax)
+    data_few_shot_34_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='blue', ax=ax)
+    data_few_shot_50_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='red',  ax=ax)
+    data_novelty_18_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='yellow', ax=ax)
+    data_novelty_34_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='black', ax=ax)
+    data_novelty_50_df.plot(kind='scatter', x='FewShotClassifier',  y='Accuracy',  color='orange', title=title, ax=ax)
 
     ax.set_ylabel("Accuracy")
     ax.legend(["FewShot 18", "FewShot 34", "FewShot 50", "Novelty 18", "Novelty 34", "Novelty 50"])
