@@ -46,7 +46,8 @@ def load_model(argsModel, argsWeights, argsAlpha):
         
         #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E61_A0_824.pth"
         #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E367_A0_836.pth"
-        modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E1029_A0_922.pth"
+        #modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_AdvLoss_E1029_A0_922.pth" # Alpha 0.2
+        modelName = "./modelsAdv/Resnet50_"+argsWeights+"_episodic_7_AdvLoss_E1143_A874.pth" # best tasks 100
         feat_dim = 2048
     if argsModel == 'resnet34':
         #print('resnet34')
@@ -55,7 +56,10 @@ def load_model(argsModel, argsWeights, argsAlpha):
         #modelName = "./models/Resnet34_"+argsWeights+"_model.pth"
         #modelName = "./models/Resnet34_"+argsWeights+"_classic_pretrained.pth"
         
-        modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_AdvLoss_E1223_A0_877.pth"
+        #modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_AdvLoss_E1223_A0_877.pth" # Alpha 0.2
+        #modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_7_AdvLoss_E1351_A890.pth" # best euMoths
+        
+        modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_2_AdvLoss_E1081_A7481.pth" # CUB
         feat_dim = 512
     if argsModel == 'resnet18':
         #print('resnet18')
@@ -93,6 +97,7 @@ def load_model(argsModel, argsWeights, argsAlpha):
     if "model.pth" in modelName or "_classic_" in modelName or "_episodic_" in modelName:
         if args.weights == 'ImageNet':
             print('Using pretrained weights with ImageNet dataset')
+            modelName = 'ImageNet'
         else:
             print('Using saved model weights', modelName)
             modelSaved = torch.load(modelName, map_location=torch.device(DEVICE))
@@ -204,13 +209,13 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    # parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    # parser.add_argument('--model', default='resnet34') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    # parser.add_argument('--weights', default='euMoths') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    # parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='ImageNet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='CUB') #miniImagenet, euMoths, CUB, Omniglot
     
     # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
@@ -220,7 +225,7 @@ if __name__=='__main__':
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
+    parser.add_argument('--novelty', default='True', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
@@ -278,9 +283,9 @@ if __name__=='__main__':
         num_classes = 60
         
     if args.learning:
-        n_test_tasks = 50 # 50 learning on validation
+        n_test_tasks = 500 # 50 learning on validation
     else:
-        n_test_tasks = 100 # 500 test
+        n_test_tasks = 200 # 100, 500 test
         
    
     #%% Create model and prepare for training
@@ -359,6 +364,24 @@ if __name__=='__main__':
         resFile.write(line)
         resFile.flush()                 
     
+    # CUB - transfer learning ResNet, Bayes TH
+    if args.dataset == 'CUB' and args.weights == 'ImageNet':
+       if args.model == 'resnet18':
+           novelty_th = 0.7675
+       if args.model == 'resnet34':
+           novelty_th = 0.7650
+       if args.model == 'resnet50':
+           novelty_th = 0.7909
+
+    # euMoths - transfer learning ResNet, Bayes TH
+    if args.dataset == 'euMoths' and args.weights == 'ImageNet':
+       if args.model == 'resnet18':
+           novelty_th = 0.8048
+       if args.model == 'resnet34':
+           novelty_th = 0.8097
+       if args.model == 'resnet50':
+           novelty_th = 0.8367
+           
     #novelty_th = 0.8739 # Omniglot, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss.pth (145 Epochs)
     #novelty_th = 0.8454 # Omniglot, 5-way 5-shot, adv, alpha 0, _episodic_0_AdvLoss.pth (145 Epochs)
 
@@ -367,11 +390,18 @@ if __name__=='__main__':
     #novelty_th = 0.8534  # Omniglot, 5-way 5-shot, adv, alpha 0.1, _episodic_1_AdvLoss.pth (1436 Epochs)
     #novelty_th = 0.8532  # Omniglot, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss.pth (1436 Epochs)
     
-    #novelty_th = 0.8392  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.929, novelty = 0.775,  (resnet50)
+    #novelty_th = 0.8367  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.9396, novelty = 0.775,  (resnet50)
     #novelty_th = 0.8244  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E61_A0_824.pth, accuracy = 0.8607, novelty = 0.736,  (resnet50)
     #novelty_th = 0.8314  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E1029_A0_922.pth (resnet50)
     #novelty_th = 0.7494  # euMoths, 5-way 5-shot, adv, alpha 0.2, _episodic_AdvLoss_E1223_A0_877.pth (resnet34) few-shot 0.897 and novelty 0.801 
-    novelty_th = 0.8148   # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.945, novelty = 0.775, 
+    #novelty_th = 0.8148  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.945, novelty = 0.775, (resnet34)
+    #novelty_th = 0.8237  # euMoths, 5-way 5-shot, adv, alpha 0.7, _episodic_7_AdvLoss_E1143_A874.pth (resnet50)
+    #novelty_th = 0.7474   # euMoths, 5-way 5-shot, adv, alpha 0.7, _episodic_7_AdvLoss_E1351_A890.pth (resnet34)
+    #novelty_th = 0.7682 # CUB, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss_E1081_A7481.pth (resnet34)
+    #novelty_th = 0.7664  # CUB, 5-way 5-shot, ImageNet, accuracy = 0.915, novelty = 0.775, (CUB, resnet34)
+    
+    #novelty_th = 0.6676 # Mini ImageNet, Resnet34,  5-way 5-shot,
+    
     
     if args.learning:     
     
