@@ -1,7 +1,13 @@
 # few-shot-novelty
 This project contains python code for few-shot-learning with novelty detection
 
+# Datasets used for training, validation and test
 Omniglot
+
+Download and unzip the images_background.zip and images_evaluation.zip from the below github. 
+Copy the images files to: data/Omniglot
+The json files defined fo the split of 
+https://github.com/brendenlake/omniglot
 
 
 CU-Birds (CUB)
