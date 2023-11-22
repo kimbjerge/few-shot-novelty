@@ -1,5 +1,5 @@
 # few-shot-novelty
-This project contains Python code for few-shot-learning with novelty detection. 
+This project contains work in progrees with Python code for few-shot-learning with novelty detection. 
 
 The problem addressed with this research is to solve the extended few-shot learning problem with queries of images of both known and unknown images. 
 A support set contains N classes with each K shots of images and a query set that contains Q images to be classified as classes inside or outside of the support set.
@@ -11,7 +11,7 @@ An image in the query set that does not belong to any of the N classes in the su
 Install the Python libraries as specified in dev_requirements.txt.
 
 The easy-few-shot-learning (easyfsl) framework has been used to boost our experiments with few-shot image classification.
-The framework contains libraries for 11 few-shot learning methods, support and query data and modules for resnet12 backend and episodic training. 
+The framework contains libraries for 11 few-shot learning methods, handling of support and query data and modules for resnet12 backend with episodic training. 
 
 Install the Python library easyfsl "pip install easyfsl" or use the GitHub:
 
