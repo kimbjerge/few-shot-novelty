@@ -162,7 +162,8 @@ if __name__=='__main__':
     #parser.add_argument('--modelDir', default='modelsOmniglotAdvStd3') #Directory that contains models
     #parser.add_argument('--modelDir', default='modelsCUBAdv') #Directory that contains models
     #parser.add_argument('--modelDir', default='modelsEUMothsAdv') #Directory that contains models
-    parser.add_argument('--modelDir', default='modelsImgNetAdv') #Directory that contains models
+    #parser.add_argument('--modelDir', default='modelsImgNetAdv') #Directory that contains models
+    parser.add_argument('--modelDir', default='modelsFinalStdAdv') #Directory that contains models
     parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     parser.add_argument('--weights', default='') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     parser.add_argument('--dataset', default='') #miniImagenet, euMoths, CUB, Omniglot
@@ -174,6 +175,7 @@ if __name__=='__main__':
     parser.add_argument('--query', default=10, type=int)
     parser.add_argument('--alpha', default=0.1, type=float)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
+    parser.add_argument('--device', default='cuda:0') #cpu or cuda:0-3
     args = parser.parse_args()
  
     random_seed = 0
@@ -183,7 +185,7 @@ if __name__=='__main__':
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    n_workers = 12
+    n_workers = 16
     
     resDir = "./result/"
     dataDirMiniImageNet = "./data/mini_imagenet"
@@ -198,13 +200,14 @@ if __name__=='__main__':
 
     #%% Create model and prepare for training
     #DEVICE = "cuda"
-    DEVICE = "cpu"
+    DEVICE = args.device
 
     for modelName in os.listdir(args.modelDir):
         if '.pth' in modelName:
+        #if 'Resnet34_mini_imagenet_episodic_5_1116_141355_AdvLoss.pth' in modelName:
             modelNameSplit = modelName.split('_')
-            if args.model == '':
-                args.model = modelNameSplit[0].lower()
+            #if args.model == '':
+            args.model = modelNameSplit[0].lower()
                 
             if modelNameSplit[2] == 'imagenet':
                 nameData = "miniImagenet"
@@ -215,10 +218,10 @@ if __name__=='__main__':
                 nameWeights = nameData
                 alpha_idx = 3
                 
-            if args.weights == '':
-                args.weights = nameWeights
-            if args.dataset == '':
-                args.dataset = nameData
+            #if args.weights == '':
+            args.weights = nameWeights
+            #if args.dataset == '':
+            args.dataset = nameData
 
             args.alpha = int(modelNameSplit[alpha_idx])/10
             
@@ -248,7 +251,7 @@ if __name__=='__main__':
             args.learning = True
             args.novelty = False
             args.way = 5
-            n_test_tasks = 1000 # 50 learning on validation, 10000 learn images
+            n_test_tasks = 500 # 50 learning on validation, 1000 = 10000 learn images
                
             test_set = load_test_dataset(args.dataset, args.learning)
             
@@ -257,7 +260,7 @@ if __name__=='__main__':
             )
                                   
             resFileName = args.model + '_' + args.dataset + "_novelty_learn.txt"
-            line = "ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween\n"
+            line = "ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
             else:
@@ -272,7 +275,7 @@ if __name__=='__main__':
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                          novelty_th, args.novelty, args.learning, 
                                                                          n_workers, None, DEVICE)
-            line = modelName + ',' + "Prototypical" + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' 
+            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + ',' + str(abs(avg-avg_o)) + '\n'
             print(line)
             resFile.write(line)    
@@ -285,10 +288,10 @@ if __name__=='__main__':
             args.learning = False
             args.novelty = True
             args.way = 6
-            n_test_tasks = 1000 # 10000 test images
+            n_test_tasks = 500 # 1000 = 10000 test images
 
             resFileName =  args.model + '_' +  args.dataset + "_novelty_test.txt"
-            line = "Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
+            line = "ModelDir,Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
             else:
@@ -335,7 +338,7 @@ if __name__=='__main__':
                     accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                                 novelty_th, args.novelty, args.learning, 
                                                                                 n_workers, metric, DEVICE)
-                    line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
+                    line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
                     line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
                     line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
                     line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
