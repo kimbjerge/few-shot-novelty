@@ -4,12 +4,16 @@ This project contains Python code for few-shot-learning with novelty detection.
 The problem addressed with this research is to solve the extended few-shot learning problem with queries of images of both known and unknown images. 
 A support set contains N classes with each K shots of images and a query set that contains Q images to be classified as classes inside or outside of the support set.
 An image in the query set that does not belong to any of the N classes in the support should be detected as a novelty. 
+
  
-## easy-few-shot-learning
+## Python environment installations 
 
-Install the Python requirements as specified in dev_requirements.txt.
+Install the Python libraries as specified in dev_requirements.txt.
 
-Install the Python library easyfsl "pip install easyfsl" or use the Github:
+The easy-few-shot-learning (easyfsl) framework has been used to boost our experiments with few-shot image classification.
+The framework contains libraries for 11 few-shot learning methods, support and query data and modules for resnet12 backend and episodic training. 
+
+Install the Python library easyfsl "pip install easyfsl" or use the GitHub:
 
 https://github.com/sicara/easy-few-shot-learning
 
@@ -33,6 +37,9 @@ With the Python script: prepare/prepare_Omniglot.py it is possible to create a c
 
 ### CU-Birds (CUB)
 
+The Caltech-UCSD Birds-200-2011 (CUB-200-2011) dataset is a widely-used dataset for fine-grained visual categorization task. 
+It contains 11,788 images of 200 subcategories belonging to birds.
+
 Download and extract the dataset from a Github which provides a make download-cub recipe to download and extract the dataset.
 See https://github.com/sicara/easy-few-shot-learning
 
@@ -54,9 +61,9 @@ The train.json, val.json, and test.json split the dataset into 60 train images, 
 With prepare/prepare_mini_imagenet.py it is possible to create another split of the miniImageNet dataset.
 
 
-### euMoths
+### EU moths
 
-This dataset presents a dataset of only 11 samples for each class of 200 moth species.
+This dataset presents a dataset of only 11 samples for each class of 200 classes of moth species.
 
 Download and unzip the Cropped images of the EU Moths dataset from:
 https://inf-cv.uni-jena.de/home/research/datasets/eu_moths_dataset/
