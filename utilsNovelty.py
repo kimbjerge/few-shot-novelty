@@ -1,7 +1,7 @@
 """
 General utilities
 
-Modified on Thu Nov  2 09:52:46 2023
+Modified on Thu Nov  2 09:52:46 2023 from easy-few-shot-learning
 
 @author: Kim Bjerge
 """
@@ -89,171 +89,6 @@ def predict_embeddings(
         {"embedding": list(concatenated_embeddings), "class_name": all_class_names}
     )
 
-
-def evaluate_on_one_task_V1(
-    model: FewShotClassifier,
-    support_images: Tensor,
-    support_labels: Tensor,
-    query_images: Tensor,
-    query_labels: Tensor,
-) -> Tuple[int, int]:
-    """
-    Returns the number of correct predictions of query labels, and the total number of
-    predictions.
-    """
-    novelIdx = 0 # could be randomized based on number of classes (ways)
-    
-    model.process_support_set(support_images, support_labels)
-    predictions = model(query_images).detach().data
-    
-    minValue = predictions.min() - 1
-    predictions[:,novelIdx] = minValue # Set novelIdx of ways below minium score
-    fewShotPredictions = predictions[query_labels != novelIdx] # Exclude novelty predictions (Here I wronly use the knowledge of new shot!)
-    max_values = torch.max(fewShotPredictions, 1)[0] # Find shortes distance in feature space
-    mean_max_values = max_values.mean() # Compute minimum of shortes distances
-    predictions[query_labels == novelIdx, novelIdx] = mean_max_values # Set way novelIdx to mean of shortes distances
-    
-    number_of_correct_predictions = (
-        (torch.max(predictions, 1)[1] == query_labels).sum().item()
-    )
-    return number_of_correct_predictions, len(query_labels)
-
-def evaluate_on_one_task_V2(
-    model: FewShotClassifier,
-    support_images: Tensor,
-    support_labels: Tensor,
-    query_images: Tensor,
-    query_labels: Tensor,
-    thDiff = -4.5, # To be learned
-    thMin = -20.0 # To be learned
-) -> Tuple[int, int]:
-    """
-    Returns the number of correct predictions of query labels, and the total number of
-    predictions.
-    """
-    novelIdx = 0 # could be randomized based on number of classes (ways)
-    
-    model.process_support_set(support_images, support_labels)
-    predictions = model(query_images).detach().data
-    
-    predictionsKWays = predictions[:,1:] # Novel class is index 0
-    kWay = predictionsKWays.shape[1]
-    meanDist = predictionsKWays.mean(1)
-    minDistSet = predictionsKWays.max(1)
-    minDistIdx = minDistSet[1]+1
-    minDist = minDistSet[0]
-    diffMeanDist = (meanDist - minDist/kWay)*(kWay/(kWay-1))
-    diffMeanMinDist = diffMeanDist - minDist
-
-    aboveThDiff = diffMeanMinDist > thDiff
-    belowThMin = minDist < thMin
-    minDistIdx[belowThMin & aboveThDiff] = 0 # Novel classes
-    
-    # minValue = predictions.min() - 1
-    # predictions[:,novelIdx] = minValue # Set novelIdx of ways below minium score
-    # fewShotPredictions = predictions[query_labels != novelIdx] # Exclude novelty predictions
-    # max_values = torch.max(fewShotPredictions, 1)[0] # Find shortes distance in feature space
-    # mean_max_values = max_values.mean() # Compute minimum of shortes distances
-    # predictions[query_labels == novelIdx, novelIdx] = mean_max_values # Set way novelIdx to mean of shortes distances
-    
-    # number_of_correct_predictions = (
-    #     (torch.max(predictions, 1)[1] == query_labels).sum().item()
-    # )
-    number_of_correct_predictions = (
-        (minDistIdx == query_labels).sum().item()
-    )
-    return number_of_correct_predictions, len(query_labels)
-
-
-def evaluate_V2(
-    model: FewShotClassifier,
-    data_loader: DataLoader,
-    device: str = "cuda",
-    use_tqdm: bool = True,
-    tqdm_prefix: Optional[str] = None,
-) -> float:
-    """
-    Evaluate the model on few-shot classification tasks
-    Args:
-        model: a few-shot classifier
-        data_loader: loads data in the shape of few-shot classification tasks*
-        device: where to cast data tensors.
-            Must be the same as the device hosting the model's parameters.
-        use_tqdm: whether to display the evaluation's progress bar
-        tqdm_prefix: prefix of the tqdm bar
-    Returns:
-        average classification accuracy
-    """
-    # We'll count everything and compute the ratio at the end
-    total_predictions = 0
-    correct_predictions = 0
-
-    thMinStart = -19.0 # -20.0 guess, best -21.0
-    thMinStep = -0.1
-    
-    #thMin = thMinStart
-    thMin = -21.0
-    
-    thDiffStart = -2.5 # -4.5 guess, best -3.5
-    thDiffStep = -0.1
-    
-    #thDiff = thDiffStart
-    thDiff = -3.5
-    
-    iterations = 0
-    accuracyBest = 0
-    
-    # eval mode affects the behaviour of some layers (such as batch normalization or dropout)
-    # no_grad() tells torch not to keep in memory the whole computational graph
-    model.eval()
-    with torch.no_grad():
-        # We use a tqdm context to show a progress bar in the logs
-        with tqdm(
-            enumerate(data_loader),
-            total=len(data_loader),
-            disable=not use_tqdm,
-            desc=tqdm_prefix,
-        ) as tqdm_eval:
-            for _, (
-                support_images,
-                support_labels,
-                query_images,
-                query_labels,
-                _,
-            ) in tqdm_eval:
-                correct, total = evaluate_on_one_task_V2(
-                    model,
-                    support_images.to(device),
-                    support_labels.to(device),
-                    query_images.to(device),
-                    query_labels.to(device),
-                    thDiff,
-                    thMin,
-                )
-
-                total_predictions += total
-                correct_predictions += correct
-                accuracy = correct_predictions / total_predictions
-                
-                iterations += 1
-                if iterations % 20 == 0:
-                    print("thDiff, tMin", thDiff, thMin)
-                    if accuracy > accuracyBest:
-                        accuracyBest = accuracy
-                        thDiffBest = thDiff
-                        thMinBest = thMin
-                        print("Best accuracy", accuracyBest, thDiffBest, thMinBest)
-                    #total_predictions = 0
-                    #correct_predictions = 0
-                    #thDiff += thDiffStep # Choose to sweep
-                    #thMin += thMinStep
-                    
-                # Log accuracy in real time
-                tqdm_eval.set_postfix(accuracy=accuracy)
-
-    return correct_predictions / total_predictions
-
-
 class Metrics:
     def __init__(self):
       
@@ -302,7 +137,7 @@ class Metrics:
         else:
             return (2*P*R)/(P+R)
 
-
+# NB! Global variables used to learn distributions of true and false predicitons during learning phase
 predictions_true = [] # Used during learning the thredshold for outlier detection
 predictions_false = []
 
@@ -495,6 +330,7 @@ def evaluate(
             plt.xlabel('Cosine Similarity')
             plt.xlim(0.2, 1.0)
             #plt.ylim(0.0, 10.0) # CUB
+            #plt.ylim(0.0, 12.0) # miniImagenet
             #plt.ylim(0.0, 15.0) # euMoths
             plt.ylim(0.0, 20.0) # Omniglot
             plt.ylabel('Probability (%)')
