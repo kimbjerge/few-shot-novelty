@@ -341,7 +341,7 @@ if __name__=='__main__':
                         accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                                     novelty_th, args.novelty, args.learning, 
                                                                                     n_workers, metric, DEVICE)
-                        line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + ',' + str(args.novelty) + ',' 
+                        line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(args.novelty) + ',' 
                         line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
                         line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
                         line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
