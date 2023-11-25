@@ -171,14 +171,16 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--model', default='resnet50') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--weights', default='euMoths') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    # parser.add_argument('--dataset', default='miniImagenet') #miniImagenet, euMoths, CUB, Omniglot
     # parser.add_argument('--model', default='resnet12') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
-    parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
+    parser.add_argument('--learning', default='True', type=bool) #default false when no parameter - learn threshold for novelty detection
     parser.add_argument('--shot', default=5, type=int) 
     parser.add_argument('--way', default=6, type=int) # Way 0 is novelty class
     parser.add_argument('--query', default=6, type=int)
@@ -238,8 +240,8 @@ if __name__=='__main__':
     
     print("Tasts for testing", n_test_tasks)
     #%% Create model and prepare for training
-    DEVICE = "cuda"
-    #DEVICE = "cpu"
+    #DEVICE = "cuda"
+    DEVICE = "cpu"
     
     # model = resnet12(
     #     use_fc=True,
@@ -292,6 +294,7 @@ if __name__=='__main__':
         print(line)
         resFile.write(line)   
         
+        #shotRange = [1,5] # Learn distribution for each shot in range 1-9
         shotRange = [1,2,3,4,5,6,7,8,9] # Learn distribution for each shot in range 1-9
         if args.dataset == "euMoths":
             shotRange = [1,2,3,4,5] # Learn distribution for each shot in range 1-5, euMoths only
