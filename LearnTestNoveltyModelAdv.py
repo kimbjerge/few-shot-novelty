@@ -108,6 +108,7 @@ def load_test_dataset(argsDataset, argsLearning):
     
     return test_set
 
+
 def get_threshold_learned(modelName, argsModel, argsWeights, nameNoveltyLearned, n_shot, useBayesThreshold=True):
     
     noveltyLearnedFile = "./learnedAdv/" + argsModel + '_' + argsWeights + nameNoveltyLearned + '.csv'
@@ -126,6 +127,7 @@ def get_threshold_learned(modelName, argsModel, argsWeights, nameNoveltyLearned,
         print("Std threshold", threshold)
         
     return threshold
+
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
                   novelty_th, use_novelty, learn_th, n_workers, metric, DEVICE):
@@ -159,11 +161,11 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     
-    #parser.add_argument('--modelDir', default='modelsOmniglotAdvStd3') #Directory that contains models
+    parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains models
     #parser.add_argument('--modelDir', default='modelsCUBAdv') #Directory that contains models
     #parser.add_argument('--modelDir', default='modelsEUMothsAdv') #Directory that contains models
     #parser.add_argument('--modelDir', default='modelsImgNetAdv') #Directory that contains models
-    parser.add_argument('--modelDir', default='modelsFinalStdAdv') #Directory that contains models
+    #parser.add_argument('--modelDir', default='modelsFinalStdAdv') #Directory that contains models
     parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     parser.add_argument('--weights', default='') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     parser.add_argument('--dataset', default='') #miniImagenet, euMoths, CUB, Omniglot
@@ -175,7 +177,7 @@ if __name__=='__main__':
     parser.add_argument('--query', default=10, type=int)
     parser.add_argument('--alpha', default=0.1, type=float)
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
-    parser.add_argument('--device', default='cuda:0') #cpu or cuda:0-3
+    parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
     args = parser.parse_args()
  
     random_seed = 0
@@ -192,14 +194,13 @@ if __name__=='__main__':
     dataDirEuMoths = "./data/euMoths"
     dataDirCUB = "./data/CUB"
     dataDirOmniglot = "./data/Omniglot"
-    subDir = "testAutoAdv/"
+    subDir = "test/"
 
     if os.path.exists(resDir+subDir) == False:
         os.mkdir(resDir+subDir)
         print("Create result directory", resDir+subDir)
 
     #%% Create model and prepare for training
-    #DEVICE = "cuda"
     DEVICE = args.device
 
     for modelName in os.listdir(args.modelDir):
@@ -231,11 +232,7 @@ if __name__=='__main__':
                 image_size = 28 # Omniglot dataset
             else:
                 image_size = 224 # ResNet euMoths
-                  
-            n_way = args.way
-            n_shot = args.shot
-            n_query = args.query
-        
+                          
             num_classes = 100  
             if args.weights == 'CUB':
                 num_classes = 140  
@@ -246,12 +243,14 @@ if __name__=='__main__':
             
             model, feat_dim = load_model(args.modelDir + '/' +modelName, num_classes, args.model, args.weights)
 
+            n_query = args.query
 
             #%% Learning
             args.learning = True
             args.novelty = False
-            args.way = 5
-            n_test_tasks = 500 # 50 learning on validation, 1000 = 10000 learn images
+            n_shot = args.shot
+            n_way = args.way
+            n_test_tasks = 500 # *n_shot samples, 50 learning on validation, 1000 = 10000 learn images
                
             test_set = load_test_dataset(args.dataset, args.learning)
             
@@ -269,13 +268,13 @@ if __name__=='__main__':
                 resFile.write(line)
                 resFile.flush()                 
             
-            novelty_th = 0.7664  # Not used during learning  
+            novelty_th = 0.8  # Not used during learning  
             
             few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=1).to(DEVICE)
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                          novelty_th, args.novelty, args.learning, 
                                                                          n_workers, None, DEVICE)
-            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' 
+            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + ',' + str(abs(avg-avg_o)) + '\n'
             print(line)
             resFile.write(line)    
@@ -286,12 +285,10 @@ if __name__=='__main__':
 
             #%% Testing
             args.learning = False
-            args.novelty = True
-            args.way = 6
             n_test_tasks = 500 # 1000 = 10000 test images
 
             resFileName =  args.model + '_' +  args.dataset + "_novelty_test.txt"
-            line = "ModelDir,Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
+            line = "ModelDir,Model,FewShotClassifier,Novelty,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
             else:
@@ -302,7 +299,7 @@ if __name__=='__main__':
 
             #test(model, test_set, test_sampler, few_shot_classifier, n_workers)
             if "bayes" in args.threshold:
-                novelty_th = threshold
+                novelty_th = threshold # Use learned threshold
             else:
                 novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)    
 
@@ -324,27 +321,34 @@ if __name__=='__main__':
                 
             test_set = load_test_dataset(args.dataset, args.learning)
             
-            for n_shot in [5, 1]:                
+            for n_shot in [5, 1]: # Test with 5 and 1 shot               
+                for use_novelty in [True, False]: # Test with and without novelty
+                    args.novelty = use_novelty
+                    if args.novelty:
+                        n_way = args.way + 1
+                    else:
+                        n_way = args.way
                 
-                test_sampler = TaskSampler(
-                    test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
-                )
-                                  
-                for few_shot in few_shot_classifiers:
-                    print(few_shot[0])
-                    print("Use softmax", few_shot[1].use_softmax)
-                    few_shot_classifier = few_shot[1].to(DEVICE)
-                    metric = Metrics()
-                    accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                                novelty_th, args.novelty, args.learning, 
-                                                                                n_workers, metric, DEVICE)
-                    line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
-                    line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
-                    line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
-                    line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
-                    print(line)
-                    resFile.write(line)    
-                    resFile.flush()
+                    test_sampler = TaskSampler(
+                        test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
+                    )
+                                      
+                    for few_shot in few_shot_classifiers:
+                        print(few_shot[0])
+                        print("Use softmax", few_shot[1].use_softmax)
+                        few_shot_classifier = few_shot[1].to(DEVICE)
+                        metric = Metrics()
+                        accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                                                                                    novelty_th, args.novelty, args.learning, 
+                                                                                    n_workers, metric, DEVICE)
+                        line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + ',' + str(args.novelty) + ',' 
+                        line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
+                        line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
+                        line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
+                        line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
+                        print(line)
+                        resFile.write(line)    
+                        resFile.flush()
                     
             resFile.close()
             print("Result saved to", resFileName)

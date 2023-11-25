@@ -1,0 +1,2 @@
+model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName
+resnet12,Omniglot,episodic,False,350,120,250,Std,0.5,False,0.05,cuda:2,200,100,250,5,10,334,0.993,0.9885,5.611731190681457,0.3318335293233395,./modelsAdv/Resnet12_Omniglot_episodic_5_1124_103558_AdvLoss.pth
