@@ -335,22 +335,22 @@ if __name__=='__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='resnet12') #resnet12, resnet18, resnet34, resnet50
-    parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot, mini_imagenet
+    parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot (resnet12), mini_imagenet
     parser.add_argument('--mode', default='episodic') # classic, episodic
     parser.add_argument('--cosine', default='', type=bool) # default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=1, type=int) # epochs
-    parser.add_argument('--m1', default=500, type=int) # learning rate scheduler for milstone 1 (epochs)
-    parser.add_argument('--m2', default=1000, type=int) # learning rate scheduler for rate milstone 2 (epochs)
-    parser.add_argument('--slossFunc', default='Var') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean)
-    parser.add_argument('--alpha', default=0.1, type=float) # alpha parameter for sloss function (0-1)
+    parser.add_argument('--epochs', default=350, type=int) # epochs
+    parser.add_argument('--m1', default=120, type=int) # learning rate scheduler for milstone 1 (epochs)
+    parser.add_argument('--m2', default=250, type=int) # learning rate scheduler for rate milstone 2 (epochs)
+    parser.add_argument('--slossFunc', default='Std') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean)
+    parser.add_argument('--alpha', default=0.8, type=float) # alpha parameter for sloss function (0-1)
     parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
-    parser.add_argument('--device', default='cuda:0') # training on cpu or cuda:0-3
-    parser.add_argument('--tasks', default='50', type=int) # training tasks per epoch (*6 queries)
-    parser.add_argument('--valTasks', default='75', type=int) # tasks used for validation
+    parser.add_argument('--device', default='cpu') # training on cpu or cuda:0-3
+    parser.add_argument('--tasks', default='200', type=int) # training tasks per epoch (*6 queries)
+    parser.add_argument('--valTasks', default='100', type=int) # tasks used for validation
     parser.add_argument('--batch', default='250', type=int) # training batch size
     parser.add_argument('--way', default='5', type=int) # n-Ways for episodic training and few-shot validation
-    parser.add_argument('--query', default='6', type=int) # n-Query for episodic training and few-shot validation
-    parser.add_argument('--learnRate', default='0.1', type=float) # learn rate for episodic and classic training
+    parser.add_argument('--query', default='10', type=int) # n-Query for episodic training and few-shot validation
+    parser.add_argument('--learnRate', default='0.05', type=float) # learn rate for episodic and classic training
     args = parser.parse_args()
  
     dataDir = './data/' + args.dataset
