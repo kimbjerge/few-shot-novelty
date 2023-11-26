@@ -20,6 +20,15 @@ https://github.com/sicara/easy-few-shot-learning
 
 ## Datasets used for training, validation, and testing
 
+A copy of the prepared Omniglot, CU-Birds and EU moths datasets can be downloaded from here:
+
+https://drive.google.com/drive/folders/1xaAJG_-wGpqR0JRUAEjzbcZyS5GxrhNk
+
+The zipped files must be copied and unzipped to the folders: 
+- data/Omniglot
+- data/CUB
+- data/euMoths
+
 ### Omniglot
 
 The Omniglot data set is designed for developing more human-like learning algorithms. 
