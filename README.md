@@ -17,7 +17,6 @@ Install the Python library easyfsl "pip install easyfsl" or use the GitHub:
 
 https://github.com/sicara/easy-few-shot-learning
 
-
 ## Datasets used for training, validation, and testing
 
 A copy of the prepared Omniglot, CU-Birds and EU moths datasets can be downloaded from here:
@@ -28,32 +27,6 @@ The zipped files must be copied and unzipped to the folders:
 - data/Omniglot
 - data/CUB
 - data/euMoths
-
-### Omniglot
-
-The Omniglot data set is designed for developing more human-like learning algorithms. 
-It contains 1623 different handwritten characters from 50 different alphabets and is used for few-shot learning research.
-
-Download and unzip the images_background.zip and images_evaluation.zip from the below GitHub. 
-https://github.com/brendenlake/omniglot
-
-Copy the images files to data/Omniglot
-
-The train.json, val.json, and test.json split the dataset into 3856 train images, 40 validation images, and 40 test images.  
-
-With the Python script: prepare/prepare_Omniglot.py it is possible to create a customized split of the Omniglot dataset.
-
-
-### CU-Birds (CUB)
-
-The Caltech-UCSD Birds-200-2011 (CUB-200-2011) dataset is a widely-used dataset for fine-grained visual categorization task. 
-It contains 11,788 images of 200 subcategories belonging to birds.
-
-Download and extract the dataset from a Github which provides a make download-cub recipe to download and extract the dataset.
-See https://github.com/sicara/easy-few-shot-learning
-
-The train.json, val.json, and test.json split the dataset into 140 train images, 30 validation images, and 30 test images.  
-
 
 ### miniImageNet 
 
@@ -69,12 +42,35 @@ The train.json, val.json, and test.json split the dataset into 60 train images, 
 
 With prepare/prepare_mini_imagenet.py it is possible to create another split of the miniImageNet dataset.
 
+### Omniglot
+
+The Omniglot data set is designed for developing more human-like learning algorithms. 
+It contains 1623 different handwritten characters from 50 different alphabets and is used for few-shot learning research.
+
+Alternatively download and unzip the images_background.zip and images_evaluation.zip from the below GitHub. 
+https://github.com/brendenlake/omniglot
+
+Copy the images files to data/Omniglot
+
+The train.json, val.json, and test.json split the dataset into 3856 train images, 40 validation images, and 40 test images.  
+
+With the Python script: prepare/prepare_Omniglot.py it is possible to create a customized split of the Omniglot dataset.
+
+### CU-Birds (CUB)
+
+The Caltech-UCSD Birds-200-2011 (CUB-200-2011) dataset is a widely-used dataset for fine-grained visual categorization task. 
+It contains 11,788 images of 200 subcategories belonging to birds.
+
+Alternatively download and extract the dataset from a Github which provides a make download-cub recipe to download and extract the dataset.
+See https://github.com/sicara/easy-few-shot-learning
+
+The train.json, val.json, and test.json split the dataset into 140 train images, 30 validation images, and 30 test images.  
 
 ### EU moths
 
 This dataset presents a dataset of only 11 samples for each class of 200 classes of moth species.
 
-Download and unzip the Cropped images of the EU Moths dataset from:
+Alternatively download and unzip the Cropped images of the EU Moths dataset from:
 https://inf-cv.uni-jena.de/home/research/datasets/eu_moths_dataset/
 
 Copy the image files to data/euMoths/images
