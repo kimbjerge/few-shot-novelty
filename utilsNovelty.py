@@ -89,6 +89,7 @@ def predict_embeddings(
         {"embedding": list(concatenated_embeddings), "class_name": all_class_names}
     )
 
+# Class used during learning to compute precision, recall and F1-score for outlier class (labels == 0)
 class Metrics:
     def __init__(self):
       
@@ -221,10 +222,12 @@ def evaluate(
     use_tqdm: bool = True,
     tqdm_prefix: Optional[str] = None,
     plt_hist: bool = True, 
-    use_novelty: bool = False, 
+    use_novelty: bool = False,
+    n_way = 5,
     metric = None,
     learn_th: bool = False
 ) -> float:
+    
     """
     Evaluate the model on few-shot classification tasks
     Args:
@@ -237,21 +240,24 @@ def evaluate(
         tqdm_prefix: prefix of the tqdm bar
         plt_hist: plot histogram after learning novelty_th
         use_novelty: True to use novelty detection
+        n_way: The number of classes in support set (default 5 way)
+        metric: Metric class to compute precision and recall for novelty class
         learn_th: True to learn novelty_th on dataset
     Returns:
-        average classification accuracy
+        average classification accuracy, learned_th, mu_k, sigma_k, mu_o, sigma_o
     """
-    
-    # We'll count everything and compute the ratio at the end
-    print("Use novelty detection with threshold", use_novelty, novelty_th)
-    print("Learn threshold value", learn_th, device)
-    
+        
     total_predictions = 0
     correct_predictions = 0
     if learn_th:
+        print("Learn threshold value with n-way", n_way)
         predictions_true.clear()
         predictions_false.clear()
+    else:
+        print("Use novelty detection with threshold", use_novelty, novelty_th)
 
+    print("On device", device)
+ 
     # eval mode affects the behaviour of some layers (such as batch normalization or dropout)
     # no_grad() tells torch not to keep in memory the whole computational graph
     model.eval()
@@ -305,7 +311,7 @@ def evaluate(
         var_o = np.var(predictions_false)
 
         #learned_th = th
-        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 5, 1) # 5-way, 1-outlier
+        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, 1) # 5-way, 1-outlier
         print(th, bayes_th)
         
         if plt_hist:

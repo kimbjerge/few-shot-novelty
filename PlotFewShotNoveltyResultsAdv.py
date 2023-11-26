@@ -129,11 +129,11 @@ def plotAccuracyModels(dataset, n_shot):
 #%% MAIN
 if __name__=='__main__':
     
-    # dataset = "Omniglot"
-    # plotAccuracy(dataset, model="resnet12", n_shot=1)
-    # plotAccuracy(dataset, model="resnet12", n_shot=5)
-    # plotPrecisionRecall(dataset, model="resnet12", n_shot=1)
-    # plotPrecisionRecall(dataset, model="resnet12", n_shot=5)
+    dataset = "Omniglot"
+    plotAccuracy(dataset, model="resnet12", n_shot=1)
+    plotAccuracy(dataset, model="resnet12", n_shot=5)
+    plotPrecisionRecall(dataset, model="resnet12", n_shot=1)
+    plotPrecisionRecall(dataset, model="resnet12", n_shot=5)
 
     dataset = "euMoths"
     plotAccuracy(dataset, model="resnet50", n_shot=1)

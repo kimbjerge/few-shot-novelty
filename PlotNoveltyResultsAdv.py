@@ -15,10 +15,14 @@ if __name__=='__main__':
     
     n_shot = 5
     fewShotClassifier = "Prototypical"
-    fewShotClassifier = "BD-CSPN"
+    #fewShotClassifier = "BD-CSPN"
     #data_df = pd.read_csv("./modelsOmniglotAdvStd1/resnet12_Omniglot_novelty_test.txt")
-    data_df = pd.read_csv("./modelsOmniglotAdvStd3/resnet12_Omniglot_novelty_test_GPU.txt")
+    #data_df = pd.read_csv("./modelsOmniglotAdvStd3/resnet12_Omniglot_novelty_test_GPU.txt")
     #data_df = pd.read_csv("./modelsOmniglotAdvStd3/resnet12_Omniglot_novelty_test.txt")
+
+    #data_df = pd.read_csv("./modelsOmniglotAdvStd4/results/resnet12_Omniglot_novelty_test_GPU.txt")
+    data_df = pd.read_csv("./modelsOmniglotAdvStd4/results/resnet12_Omniglot_novelty_test_CPU.txt")
+    data_df = data_df.loc[data_df['Novelty'] == True]
      
     # Header
     # Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName

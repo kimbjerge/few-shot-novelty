@@ -14,10 +14,6 @@ import argparse
 import pandas as pd
 from torch.utils.data import DataLoader
 
-#from easyfsl.datasets import CUB
-#from easyfsl.datasets import MiniImageNet
-#from easyfsl.datasets import EasySet
-#from easyfsl.modules import resnet12
 from PrototypicalNetworksNovelty import PrototypicalNetworksNovelty
 from utilsNovelty import evaluate, Metrics
 from NoveltyThreshold import getLearnedThreshold, StdTimesTwoThredshold
@@ -130,7 +126,7 @@ def get_threshold_learned(modelName, argsModel, argsWeights, nameNoveltyLearned,
 
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                  novelty_th, use_novelty, learn_th, n_workers, metric, DEVICE):
+                  novelty_th, use_novelty, n_way, learn_th, n_workers, metric, DEVICE):
 
     test_loader = DataLoader(
         test_set,
@@ -139,15 +135,15 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
         pin_memory=True,
         collate_fn=test_sampler.episodic_collate_fn,
     )
-    
-    
+       
     accuracy, learned_th, avg, std, avg_o, std_o = evaluate(few_shot_classifier, 
                                                             test_loader, 
                                                             novelty_th, 
                                                             device=DEVICE,
                                                             tqdm_prefix="Test",
                                                             plt_hist=True,
-                                                            use_novelty=use_novelty, 
+                                                            use_novelty=use_novelty,
+                                                            n_way = n_way,
                                                             metric=metric,
                                                             learn_th=learn_th, 
                                                             )
@@ -161,23 +157,24 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains models
-    #parser.add_argument('--modelDir', default='modelsCUBAdv') #Directory that contains models
-    #parser.add_argument('--modelDir', default='modelsEUMothsAdv') #Directory that contains models
-    #parser.add_argument('--modelDir', default='modelsImgNetAdv') #Directory that contains models
-    #parser.add_argument('--modelDir', default='modelsFinalStdAdv') #Directory that contains models
-    parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='') #miniImagenet, euMoths, CUB, Omniglot
+    # Arguments to be changed 
+    parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains Ominiglot models
+    #parser.add_argument('--modelDir', default='modelsFinalPreAdv') #Directory that contains other pretrained models
+    parser.add_argument('--way', default=10, type=int) # Way 0 is novelty class and it will automatic add 1 for novelty test
+    parser.add_argument('--query', default=6, type=int) # Use 10 for Omniglot and 6 for euMoths
+    parser.add_argument('--shot', default=5, type=int)  # Number of shot used during learning must be 5
+    parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used, only bayes are tested
+    parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
+
+    # Theses arguments must not be changed and will be updated based on the model name
+    parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50, Must be empty
+    parser.add_argument('--weights', default='') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot, Must be empty
+    parser.add_argument('--dataset', default='') #miniImagenet, euMoths, CUB, Omniglot, Must be empty
+    parser.add_argument('--alpha', default=0.1, type=float) # No effect
         
+    # Theses arguments must not be changed and will be updated during learning and testing
     parser.add_argument('--novelty', default='', type=bool) #default false when no parameter - automatic False when learning True
     parser.add_argument('--learning', default='', type=bool) #default false when no parameter - learn threshold for novelty detection
-    parser.add_argument('--shot', default=5, type=int) 
-    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class
-    parser.add_argument('--query', default=10, type=int)
-    parser.add_argument('--alpha', default=0.1, type=float)
-    parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used
-    parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
     args = parser.parse_args()
  
     random_seed = 0
@@ -272,13 +269,14 @@ if __name__=='__main__':
             
             few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=1).to(DEVICE)
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                         novelty_th, args.novelty, args.learning, 
+                                                                         novelty_th, args.novelty, n_way, args.learning, 
                                                                          n_workers, None, DEVICE)
-            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' 
+            
+            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(n_way) + ','  
+            line += str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + ',' + str(abs(avg-avg_o)) + '\n'
             print(line)
-            resFile.write(line)    
-            
+            resFile.write(line)        
             resFile.close()
             print("Result saved to", resFileName)
                 
@@ -305,9 +303,9 @@ if __name__=='__main__':
 
             few_shot_classifiers =  [ 
                                      # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)],
-                                     # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)],
-                                     #["PrototypicalNetworks", PrototypicalNetworks(model)], #No
+                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)], # Cosine dist.
+                                     # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)], - euclidian dist.
+                                     #["PrototypicalNetworks", PrototypicalNetworks(model)], # No
                                      #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                                      #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
                                      #["SimpleShot", SimpleShot(model)], No - too simple
@@ -339,8 +337,9 @@ if __name__=='__main__':
                         few_shot_classifier = few_shot[1].to(DEVICE)
                         metric = Metrics()
                         accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                                    novelty_th, args.novelty, args.learning, 
+                                                                                    novelty_th, args.novelty, n_way, args.learning, 
                                                                                     n_workers, metric, DEVICE)
+                        
                         line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(args.novelty) + ',' 
                         line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
                         line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
