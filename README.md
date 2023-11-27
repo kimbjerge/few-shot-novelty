@@ -175,3 +175,8 @@ python LearnTestNoveltyModelAdv.py --modelDir modelsFinalPreAdv --way 5 --query 
 ## Printing and plotting results
 
 PlotNoveltyResultsAdv.py and PlotFewShotNoveltyResultsAdv.py are used to read and plot the result files *_text.txt.
+
+
+## Legacy experiments 
+
+The folder experiments contain old code for preliminary experiments during the research for methods of training, learning, and testing of few-shot learning with novelty detection.
