@@ -1,0 +1,2 @@
+model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName
+resnet18,CUB,episodic,False,250,120,190,Std,0.5,True,0.001,cuda:3,500,100,250,5,10,203,0.933,0.9353,7.94134920501709,0.22094455717504025,./modelsAdv/Resnet18_CUB_episodic_5_1120_110730_AdvLoss.pth

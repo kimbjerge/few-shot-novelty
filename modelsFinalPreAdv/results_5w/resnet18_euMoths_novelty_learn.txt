@@ -1,0 +1,2 @@
+ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween
+modelsFinalPreAdv,Resnet18_euMoths_episodic_5_1119_172133_AdvLoss.pth,Prototypical,5,5,6,0.9774,0.7637048264854019,0.8861248059606465,0.04588469864847479,0.6100429656851398,0.08477545523445076,0.27608184027550664

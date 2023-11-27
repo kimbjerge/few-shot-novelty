@@ -1,0 +1,2 @@
+ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween
+modelsFinalPreAdv,Resnet34_CUB_episodic_5_1119_204436_AdvLoss.pth,Prototypical,5,5,6,0.9442666666666667,0.7540413332020378,0.8676693231052546,0.04500335623475867,0.6295151158949517,0.07693361187149947,0.2381542072103029

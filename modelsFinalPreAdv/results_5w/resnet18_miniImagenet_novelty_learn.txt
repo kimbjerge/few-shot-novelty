@@ -1,0 +1,2 @@
+ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween
+modelsFinalPreAdv,Resnet18_mini_imagenet_episodic_5_1119_020609_AdvLoss.pth,Prototypical,5,5,6,0.9453333333333334,0.7662067528360667,0.8659192224820007,0.04138459407694921,0.655805150394253,0.07935998588160165,0.21011407208774768
