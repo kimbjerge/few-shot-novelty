@@ -80,4 +80,32 @@ The train.json, val.json, and test.json split the dataset into 100 train images,
 With prepare/prepare_eu_moths.py it is possible to create another split of the EU moths dataset.
 
 
+## Episodic training
+
+Episodic training for domain generalization is the problem of learning models that generalize to novel testing domains with different statistics and classes than in the set of known training domains. 
+The goal is to use the training domain source to learn a model that generalizes well to a novel validation domain without any knowledge of the validation domain during model learning.
+It is also called the meta-learning paradigm, where we have a set of tasks to learn in each epoch. 
+Each task also called an episode contains a support set of N-classes with K-shots of images for each class. 
+A query set of images is matched with the support set using a few-shot Protypical network that compares the embeddings from the backbone of the convolutional neural network.
+The Prototypical network uses the Euclidian distance as a similarity function during training to find the best matching class in the support set. 
+Episodic training can be performed with and without pre-trained weights where the backbone is ResNet18, ResNet34, or ResNet50.
+
+- When training without pre-trained weights the model with the best accuracy is selected and stored.
+- When training with pre-trained weights the model with the lowest loss is selected and stored.  
+
+
+### Omniglot training
+
+To train a model on the Omniglot dataset ResNet12 without pre-trained weights the Linux bash script/trainOmniglotAdv.sh is used.
+It contains the command arguments used to train models with alpha values ranging from 0.0 - 1.0.
+
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.5 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+
+The models and results will be stored in the folder modelsAdv and tensorboard log files are stored in runs.
+The folder models/OmniglotAdvStd4 contains the trained models, a file is generated for every trained model that contains arguments and results for training:
+
+model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName
+resnet12,Omniglot,episodic,False,350,120,250,Std,0.5,False,0.05,cuda:2,200,100,250,5,10,334,0.993,0.9885,5.611731190681457,0.3318335293233395,./modelsAdv/Resnet12_Omniglot_episodic_5_1124_103558_AdvLoss.pth 
+
+ 
 
