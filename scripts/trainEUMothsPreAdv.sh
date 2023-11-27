@@ -1,0 +1,3 @@
+python FewShotTrainingAdvLoss.py --model resnet50 --dataset euMoths --mode episodic --alpha 0.5 --m1 120 --m2 190 --epochs 250 --learnRate 0.001 --pretrained True --slossFunc Std --tasks 500 --valTasks 100 --query 6 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet34 --dataset euMoths --mode episodic --alpha 0.5 --m1 120 --m2 190 --epochs 250 --learnRate 0.001 --pretrained True --slossFunc Std --tasks 500 --valTasks 100 --query 6 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet18 --dataset euMoths --mode episodic --alpha 0.5 --m1 120 --m2 190 --epochs 250 --learnRate 0.001 --pretrained True --slossFunc Std --tasks 500 --valTasks 100 --query 6 --device cuda:0

@@ -1,0 +1,11 @@
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.0 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.1 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.2 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.3 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.4 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.5 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.6 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.7 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.8 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 0.9 --tasks 200 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet12 --dataset Omniglot --epochs 350 --m1 120 --m2 250 --slossFunc Std --learnRate 0.05 --alpha 1.0 --tasks 200 --valTasks 100 --query 10 --device cuda:0

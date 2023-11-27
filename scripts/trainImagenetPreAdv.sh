@@ -1,0 +1,3 @@
+python FewShotTrainingAdvLoss.py --model resnet50 --dataset mini_imagenet --mode episodic --slossFunc Std --alpha 0.5 --m1 80 --m2 120 --epochs 160 --learnRate 0.001 --pretrained True --tasks 500 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet34 --dataset mini_imagenet --mode episodic --slossFunc Std --alpha 0.5 --m1 80 --m2 120 --epochs 160 --learnRate 0.001 --pretrained True --tasks 500 --valTasks 100 --query 10 --device cuda:0
+python FewShotTrainingAdvLoss.py --model resnet18 --dataset mini_imagenet --mode episodic --slossFunc Std --alpha 0.5 --m1 80 --m2 120 --epochs 160 --learnRate 0.001 --pretrained True --tasks 500 --valTasks 100 --query 10 --device cuda:0
