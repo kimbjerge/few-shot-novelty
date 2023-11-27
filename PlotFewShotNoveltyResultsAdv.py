@@ -8,7 +8,7 @@ Created on Fri Nov  3 14:45:58 2023
 import matplotlib.pyplot as plt
 import pandas as pd
 
-resultDir = "./modelsFinalPreAdv/test_5w/" # 500*6 queries made on GPU cluser, 
+resultDir = "./modelsFinalPreAdv/results_5w/" # 500*6 queries made on GPU cluser, 
 
 def plotAccuracy(dataset, model, n_shot):
     title = dataset + " " + model + " (n-shot=" + str(n_shot) + ")"
