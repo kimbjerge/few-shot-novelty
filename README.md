@@ -169,7 +169,7 @@ Pre-processed result files are stored in modelsOmniglotAdvStd4/results-5w
 
 ### Learning and test results for 5-ways with 10 images in each query for trained models on miniImagenet
 
-python LearnTestNoveltyModelAdv.py --modelDir modelsFinalPreAdv --way 5 --query 10 --device cuda:0
+python LearnTestNoveltyModelAdv.py --modelDir modelsFinalAdv --way 5 --query 10 --device cuda:0
 
 
 ## Printing and plotting results
