@@ -1,0 +1,2 @@
+model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,valTasks,batch,way,query,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName
+resnet18,mini_imagenet,episodic,False,250,120,190,Std,0.5,False,0.01,cuda:2,500,100,250,5,10,130,0.79,0.7294,4.459084733009338,0.4407364938855171,./modelsAdv/Resnet18_mini_imagenet_episodic_5_1127_065046_AdvLoss.pth
