@@ -155,7 +155,7 @@ All results are stored in the folder results/test with the filenames *_learn.txt
 
 python LearnTestNoveltyModelAdv.py --modelDir modelsOmniglotAdvStd4 --way 5 --query 10 --device cuda:0
 
-Pre-processed result files are stored in modelsOmniglotAdvStd4/results-5w and modelsOmniglotAdvStd4/results-20w
+A copy of processed result files are found in modelsOmniglotAdvStd4/results-5w and modelsOmniglotAdvStd4/results-20w
 
 
 ### Learning and test results for 5-ways with 6 images in each query for trained models on CUB and euMoths
@@ -164,12 +164,14 @@ python LearnTestNoveltyModelAdv.py --modelDir modelsFinalPreAdv --way 5 --query 
 
 There are only 11 images for each class in the EU-Moths dataset therefore with 5-shot, the maximum query of images is 6.
 
-Pre-processed result files are stored in modelsOmniglotAdvStd4/results-5w
+A copy of processed result files are found in modelsFinalPreAdv/results_5w
 
 
 ### Learning and test results for 5-ways with 10 images in each query for trained models on miniImagenet
 
 python LearnTestNoveltyModelAdv.py --modelDir modelsFinalAdv --way 5 --query 10 --device cuda:0
+
+A copy of processed result files are found in modelsFinalAdv/results_5w
 
 
 ## Printing and plotting results
