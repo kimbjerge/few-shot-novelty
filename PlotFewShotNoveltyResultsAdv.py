@@ -8,7 +8,6 @@ Created on Fri Nov  3 14:45:58 2023
 import matplotlib.pyplot as plt
 import pandas as pd
 
-resultDir = "./modelsFinalPreAdv/results_5w/" # 500*6 queries made on GPU cluser, 
 
 def plotAccuracy(dataset, model, n_shot):
     title = dataset + " " + model + " (n-shot=" + str(n_shot) + ")"
@@ -128,6 +127,8 @@ def plotAccuracyModels(dataset, n_shot):
     
 #%% MAIN
 if __name__=='__main__':
+
+    resultDir = "./modelsFinalPreAdv/results_5w/" # 500*6 queries made on GPU cluser, 
     
     dataset = "Omniglot"
     plotAccuracy(dataset, model="resnet12", n_shot=1)
@@ -154,6 +155,8 @@ if __name__=='__main__':
    
     plotAccuracyModels(dataset, n_shot=1)
     plotAccuracyModels(dataset, n_shot=5)
+
+    resultDir = "./modelsFinalAdv/results_5w/" # 500*6 queries made on GPU cluser, 
 
     dataset = "miniImagenet"
     plotAccuracy(dataset, model="resnet18", n_shot=1)
