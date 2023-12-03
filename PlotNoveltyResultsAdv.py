@@ -188,7 +188,7 @@ if __name__=='__main__':
     
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red']
     data_dfs = [data_df_0, data_df_1, data_df_2, data_df_8, data_df_9, data_df_10]
-    plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "Omniglot Novelty vs. N-way", (0.5, 1.0))
+    plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "Omniglot Novelty vs. N-way (Prototypical)", (0.5, 1.0))
 
     #data_df = pd.read_csv("./modelsOmniglotAdvStd4_1/results-Nw/resnet12_Omniglot_8_novelty_ways_test.txt")
     #plotScoresVsWays(data_df, fewShotClassifier, "Omniglot R2 0.8 " + fewShotClassifier, (0.6, 1.0))
