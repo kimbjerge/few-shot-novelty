@@ -322,26 +322,27 @@ def evaluate(
             x = np.linspace(xmin, xmax, 100) 
             # add a 'best fit' line
             y_k = norm.pdf(x, mu_k, sigma_k)
-            plt.plot(x, y_k, 'k--', linewidth=1)
+            plt.plot(x, y_k, 'b--', linewidth=1)
             y_o = norm.pdf(x, mu_o, sigma_o)
-            plt.plot(x, y_o, 'k--', linewidth=1)
+            plt.plot(x, y_o, 'r--', linewidth=1)
             steps = 20
             step = max(y_k)/steps
             listTh = [th for i in range(steps)]
             listBTh = [bayes_th for i in range(steps)]
             listPb = [step*i for i in range(steps)]
             plt.plot(listTh, listPb, 'k--')
-            plt.plot(listBTh, listPb, 'g')
+            plt.plot(listBTh, listPb, 'k')
             #plt.xlabel('True Positive (Cosine Similarity)')
-            plt.xlabel('Cosine Similarity')
+            plt.xlabel('Cosine similarity')
             plt.xlim(0.2, 1.0)
             #plt.ylim(0.0, 10.0) # CUB
             #plt.ylim(0.0, 12.0) # miniImagenet
             #plt.ylim(0.0, 15.0) # euMoths
             plt.ylim(0.0, 20.0) # Omniglot
             plt.ylabel('Probability (%)')
-            plt.title('Distribution of TN (red) and TP (blue) (th>%.4f)' % (bayes_th))
+            #plt.title('Distribution of similarities (th=%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
+            plt.legend(["True positive", "True negative"])
             plt.subplots_adjust(left=0.15)
             plt.show()
             

@@ -159,9 +159,11 @@ if __name__=='__main__':
     
     # Arguments to be changed 
     parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains Ominiglot models
+    #parser.add_argument('--modelDir', default='modelsOmniglot') #Directory that contains Ominiglot models
+    #parser.add_argument('--modelDir', default='modelsFinalAdv_L0_01') #Directory that contains Ominiglot models
     #parser.add_argument('--modelDir', default='modelsFinalPreAdv') #Directory that contains other pretrained models
-    parser.add_argument('--way', default=10, type=int) # Way 0 is novelty class and it will automatic add 1 for novelty test
-    parser.add_argument('--query', default=6, type=int) # Use 10 for Omniglot and 6 for euMoths
+    parser.add_argument('--way', default=5, type=int) # Way 0 is novelty class and it will automatic add 1 for novelty test
+    parser.add_argument('--query', default=10, type=int) # Use 10 for Omniglot and 6 for euMoths
     parser.add_argument('--shot', default=5, type=int)  # Number of shot used during learning must be 5
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used, only bayes are tested
     parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
