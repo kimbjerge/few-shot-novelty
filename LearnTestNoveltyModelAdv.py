@@ -69,33 +69,33 @@ def load_model(modelName, num_classes, argsModel, argsWeights):
 
 def load_test_dataset(argsDataset, argsLearning):
     
-    if args.dataset == 'Omniglot':
-        if args.learning:       
+    if argsDataset == 'Omniglot':
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirOmniglot, training=False)
             print("Omniglot Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirOmniglot, training=False)
             print("Omniglot Test dataset")
-    if args.dataset == 'euMoths':
+    if argsDataset == 'euMoths':
         #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirEuMoths,training=False)
-        if args.learning:
+        if argsLearning:
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirEuMoths, training=False)
             print("euMoths Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirEuMoths, training=False)
             print("euMoths Test dataset")
-    if args.dataset == 'CUB':
+    if argsDataset == 'CUB':
         #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirCUB, training=False)
-        if args.learning:       
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirCUB, training=False)
             print("CUB Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirCUB, training=False)
             print("CUB Test dataset")
-    if args.dataset == 'miniImagenet':
+    if argsDataset == 'miniImagenet':
         #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', specs_file=dataDirMiniImageNet+'/test.csv', image_size=image_size, training=False)
         #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', split="test", image_size=image_size, training=False)
-        if args.learning:       
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirMiniImageNet, training=False)
             print("miniImageNet Val dataset")
         else:
