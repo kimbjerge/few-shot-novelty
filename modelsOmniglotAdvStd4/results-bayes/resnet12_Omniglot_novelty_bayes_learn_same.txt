@@ -1,0 +1,2 @@
+ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween
+modelsOmniglot,Resnet12_Omniglot_episodic_8_1124_181322_AdvLoss.pth,Prototypical,5,5,10,0.9904,0.8296863731267784,0.9427114997402146,0.03831616368663959,0.5405721871894732,0.1414744673620134,0.4021393125507414
