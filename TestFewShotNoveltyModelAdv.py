@@ -215,7 +215,7 @@ if __name__=='__main__':
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
     parser.add_argument('--model', default='resnet34') #resnet12 (Omniglot), resnet18, resnet34, resnet50
-    parser.add_argument('--weights', default='ImageNet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--weights', default='euMoths') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
     
     # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
@@ -403,7 +403,7 @@ if __name__=='__main__':
     #novelty_th = 0.7664  # CUB, 5-way 5-shot, ImageNet, accuracy = 0.915, novelty = 0.775, (CUB, resnet34) 
     #novelty_th = 0.6676 # Mini ImageNet, Resnet34,  5-way 5-shot,
     
-    #novelty_th =0.766085 # 0.9776 accuracy euMoths, Resnet34, alpha = 0.5
+    novelty_th =0.766085 # 0.9776 accuracy euMoths, Resnet34, alpha = 0.5
     
     if args.learning:     
     
