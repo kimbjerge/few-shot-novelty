@@ -330,16 +330,18 @@ def evaluate(
             listTh = [th for i in range(steps)]
             listBTh = [bayes_th for i in range(steps)]
             listPb = [step*i for i in range(steps)]
-            plt.plot(listTh, listPb, 'k--')
+            #plt.plot(listTh, listPb, 'k--')
             plt.plot(listBTh, listPb, 'k')
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine similarity')
             plt.xlim(0.2, 1.0)
             #plt.ylim(0.0, 10.0) # CUB
             #plt.ylim(0.0, 12.0) # miniImagenet
-            #plt.ylim(0.0, 15.0) # euMoths
-            plt.ylim(0.0, 20.0) # Omniglot
+            plt.ylim(0.0, 15.0) # euMoths
+            #plt.ylim(0.0, 20.0) # Omniglot
             plt.ylabel('Probability (%)')
+            #plt.title('Pre-trained on ImageNet')
+            #plt.title('Fine-tuned on EU Moths')
             #plt.title('Distribution of similarities (th=%.4f)' % (bayes_th))
             # Tweak spacing to prevent clipping of ylabel
             plt.legend(["True positive", "True negative"])

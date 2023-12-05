@@ -7,7 +7,7 @@ Created on Fri Nov 17 16:44:30 2023
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
+#import numpy as np
 
 def plotBayesTolerance(data_df, fewShotClassifier, title, limits, n_way=6, n_shot=5):
     

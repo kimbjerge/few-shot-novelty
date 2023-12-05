@@ -58,8 +58,8 @@ def load_model(argsModel, argsWeights, argsAlpha):
         
         #modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_AdvLoss_E1223_A0_877.pth" # Alpha 0.2
         #modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_7_AdvLoss_E1351_A890.pth" # best euMoths
-        
-        modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_2_AdvLoss_E1081_A7481.pth" # CUB
+        #modelName = "./modelsAdv/Resnet34_"+argsWeights+"_episodic_2_AdvLoss_E1081_A7481.pth" # CUB
+        modelName = "./modelsFinalPreAdv/Resnet34_"+argsWeights+"_episodic_5_1119_052459_AdvLoss.pth" # euMoths
         feat_dim = 512
     if argsModel == 'resnet18':
         #print('resnet18')
@@ -93,6 +93,7 @@ def load_model(argsModel, argsWeights, argsAlpha):
     
     #modelName = "./models/Resnet18_euMoths_state.pth"
     #model.load_state_dict(torch.load(modelName))
+    print(modelName)
     
     if "model.pth" in modelName or "_classic_" in modelName or "_episodic_" in modelName:
         if args.weights == 'ImageNet':
@@ -123,33 +124,33 @@ def load_model(argsModel, argsWeights, argsAlpha):
 
 def load_test_dataset(argsDataset, argsLearning):
     
-    if args.dataset == 'Omniglot':
-        if args.learning:       
+    if argsDataset == 'Omniglot':
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirOmniglot, training=False)
             print("Omniglot Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirOmniglot, training=False)
             print("Omniglot Test dataset")
-    if args.dataset == 'euMoths':
+    if argsDataset == 'euMoths':
         #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirEuMoths,training=False)
-        if args.learning:
+        if argsLearning:
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirEuMoths, training=False)
             print("euMoths Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirEuMoths, training=False)
             print("euMoths Test dataset")
-    if args.dataset == 'CUB':
+    if argsDataset == 'CUB':
         #test_set = FewShotDataset(split="train", image_size=image_size, root=dataDirCUB, training=False)
-        if args.learning:       
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirCUB, training=False)
             print("CUB Val dataset")
         else:
             test_set = FewShotDataset(split="test", image_size=image_size, root=dataDirCUB, training=False)
             print("CUB Test dataset")
-    if args.dataset == 'miniImagenet':
+    if argsDataset == 'miniImagenet':
         #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', specs_file=dataDirMiniImageNet+'/test.csv', image_size=image_size, training=False)
         #test_set = MiniImageNet(root=dataDirMiniImageNet+'/images', split="test", image_size=image_size, training=False)
-        if args.learning:       
+        if argsLearning:       
             test_set = FewShotDataset(split="val", image_size=image_size, root=dataDirMiniImageNet, training=False)
             print("miniImageNet Val dataset")
         else:
@@ -213,9 +214,9 @@ if __name__=='__main__':
     # parser.add_argument('--weights', default='Omniglot') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
     # parser.add_argument('--dataset', default='Omniglot') #miniImagenet, euMoths, CUB, Omniglot
     
-    parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
+    parser.add_argument('--model', default='resnet34') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     parser.add_argument('--weights', default='ImageNet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
-    parser.add_argument('--dataset', default='CUB') #miniImagenet, euMoths, CUB, Omniglot
+    parser.add_argument('--dataset', default='euMoths') #miniImagenet, euMoths, CUB, Omniglot
     
     # parser.add_argument('--model', default='resnet18') #resnet12 (Omniglot), resnet18, resnet34, resnet50
     # parser.add_argument('--weights', default='mini_imagenet') #ImageNet, mini_imagenet, euMoths, CUB, Omniglot
@@ -397,11 +398,12 @@ if __name__=='__main__':
     #novelty_th = 0.8148  # euMoths, 5-way 5-shot, ImageNet, accuracy = 0.945, novelty = 0.775, (resnet34)
     #novelty_th = 0.8237  # euMoths, 5-way 5-shot, adv, alpha 0.7, _episodic_7_AdvLoss_E1143_A874.pth (resnet50)
     #novelty_th = 0.7474   # euMoths, 5-way 5-shot, adv, alpha 0.7, _episodic_7_AdvLoss_E1351_A890.pth (resnet34)
-    #novelty_th = 0.7682 # CUB, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss_E1081_A7481.pth (resnet34)
-    #novelty_th = 0.7664  # CUB, 5-way 5-shot, ImageNet, accuracy = 0.915, novelty = 0.775, (CUB, resnet34)
     
+    #novelty_th = 0.7682 # CUB, 5-way 5-shot, adv, alpha 0.2, _episodic_2_AdvLoss_E1081_A7481.pth (resnet34)
+    #novelty_th = 0.7664  # CUB, 5-way 5-shot, ImageNet, accuracy = 0.915, novelty = 0.775, (CUB, resnet34) 
     #novelty_th = 0.6676 # Mini ImageNet, Resnet34,  5-way 5-shot,
     
+    #novelty_th =0.766085 # 0.9776 accuracy euMoths, Resnet34, alpha = 0.5
     
     if args.learning:     
     
