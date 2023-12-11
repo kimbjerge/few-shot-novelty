@@ -179,7 +179,7 @@ def get_threshold_learned(modelName, argsModel, argsWeights, nameNoveltyLearned,
     return threshold
 
 def test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                  novelty_th, use_novelty, learn_th, n_workers, metric, DEVICE):
+                  novelty_th, use_novelty, n_way, learn_th, n_workers, metric, DEVICE):
 
     test_loader = DataLoader(
         test_set,
@@ -197,6 +197,7 @@ def test_or_learn(test_set, test_sampler, few_shot_classifier,
                                                             tqdm_prefix="Test",
                                                             plt_hist=True,
                                                             use_novelty=use_novelty, 
+                                                            n_way = n_way,
                                                             metric=metric,
                                                             learn_th=learn_th, 
                                                             )
@@ -412,7 +413,7 @@ if __name__=='__main__':
             print("Use softmax", few_shot[1].use_softmax)
             few_shot_classifier = few_shot[1].to(DEVICE)
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                         novelty_th, args.novelty, args.learning, 
+                                                                         novelty_th, args.novelty, n_way, args.learning, 
                                                                          n_workers, None, DEVICE)
             line = modelName + ',' + few_shot[0] + ',' + str(args.way) + ','  + str(args.shot) + ','  + str(args.query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + '\n'
@@ -431,7 +432,7 @@ if __name__=='__main__':
             few_shot_classifier = few_shot[1].to(DEVICE)
             metric = Metrics()
             accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
-                                                                        novelty_th, args.novelty, args.learning, 
+                                                                        novelty_th, args.novelty, n_way, args.learning, 
                                                                         n_workers, metric, DEVICE)
             line = args.model + ',' + few_shot[0] + ',' + str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
             line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','

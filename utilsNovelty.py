@@ -98,14 +98,14 @@ class Metrics:
       self.false_negative = 0
 
     # Calculate the metrics for the novelty class with label index 0
-    def calcMetrics(self, predicted, query_labels):
+    def calcMetrics(self, predicted, query_labels, novelClassId=0):
         
         # Label 0 is outlier label 
-        TP=(predicted[query_labels==0] == 0).sum().cpu().numpy() # Same labels as query
+        TP=(predicted[query_labels==novelClassId] == 0).sum().cpu().numpy() # Same labels as query
         self.true_positive += TP
-        FP=(predicted[query_labels!=0] == 0).sum().cpu().numpy() # Novelty label for know classes
+        FP=(predicted[query_labels!=novelClassId] == 0).sum().cpu().numpy() # Novelty label for know classes
         self.false_positive += FP
-        FN=(predicted[query_labels==0] != 0).sum().cpu().numpy() # Novel class with label of know classes
+        FN=(predicted[query_labels==novelClassId] != 0).sum().cpu().numpy() # Novel class with label of know classes
         self.false_negative += FN
         #print("TP FP FN", self.true_positive, self.false_positive, self.false_negative)
         
@@ -151,6 +151,7 @@ def evaluate_on_one_task(
     use_novelty,
     learn_th,
     thMin,
+    n_way,
     metric,
     device
 ) -> Tuple[int, int]:
@@ -158,6 +159,16 @@ def evaluate_on_one_task(
     Returns the number of correct predictions of query labels, and the total number of
     predictions.
     """
+    
+    novelClassId = 0
+    #novelClassId = n_way-1
+    if use_novelty:
+        # Remove novel class with novelClassId from support set
+        support_to_use = support_labels != novelClassId # Novel class removed from support set
+        support_images = support_images[support_to_use,:]
+        support_labels = support_labels[support_to_use] - 1 # if novelClassId == 0, re-number label Ids
+        #support_labels = support_labels[support_to_use]  # if novelClassId == n_way-1, no re-number
+        
     model.process_support_set(support_images, support_labels)
     #predictions, pred_std = model(query_images) #.detach().data
     predictions = model(query_images).detach().data
@@ -187,12 +198,27 @@ def evaluate_on_one_task(
         predictions_true.extend(correct_scores.tolist())
         
     if use_novelty:
+        
+        """ First implementation, where novelClassId = 0
+        novelClassId = 0
         predictionsKWays = predictions[:,1:] # Novel class is index 0
         minDistSet = predictionsKWays.max(1)
         minDist = minDistSet[0]
         minDistIdx = minDistSet[1]+1 # Add one to class index, where novel class = 0
         belowThMin = minDist < thMin
-        minDistIdx[belowThMin] = 0 # Novel class if correclation is below threshold
+        minDistIdx[belowThMin] = novelClassId # Novel class if correlation is below threshold
+        minDistIdx = minDistIdx.to(device)
+        number_of_correct_predictions = (
+            (minDistIdx == query_labels).sum().item()
+        )
+        """
+        minDistSet = predictions.max(1)
+        minDist = minDistSet[0]
+        minDistIdx = minDistSet[1] + 1 # if novelClassId == 0, re-number label Ids
+        # minDistIdx = minDistSet[1] # if novelClassId == n_way-1, no re-number
+        # Novel class if below similarty threshold
+        belowThMin = minDist < thMin 
+        minDistIdx[belowThMin] = novelClassId # Set novelClassId if below threshold
         minDistIdx = minDistIdx.to(device)
         number_of_correct_predictions = (
             (minDistIdx == query_labels).sum().item()
@@ -209,7 +235,7 @@ def evaluate_on_one_task(
         #    print("Th, avg, std", np.mean(predictions_true)-2*np.std(predictions_true), np.mean(predictions_true), np.std(predictions_true))
  
     if metric != None:
-        metric.calcMetrics(minDistIdx, query_labels)
+        metric.calcMetrics(minDistIdx, query_labels, novelClassId=novelClassId)
 
     return number_of_correct_predictions, len(query_labels)
 
@@ -285,6 +311,7 @@ def evaluate(
                     use_novelty,
                     learn_th,
                     novelty_th,
+                    n_way,
                     metric,
                     device
                 )
