@@ -83,7 +83,7 @@ def equationroots(a, b, c):
     x = x1
     if x2 > 0 and x2 < 1: # Use the solution between 0-1
         x = x2
-    return x    
+    return x, x2    
 
 # Bayes classification for two classes 
 # using the decision function d(x) = p(x|w)*P(w)

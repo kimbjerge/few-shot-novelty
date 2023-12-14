@@ -338,7 +338,7 @@ def evaluate(
         var_o = np.var(predictions_false)
 
         #learned_th = th
-        bayes_th = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, 1) # 5-way, 1-outlier
+        bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, 1) # 5-way, 1-outlier
         print(th, bayes_th)
         
         if plt_hist:
@@ -356,16 +356,18 @@ def evaluate(
             step = max(y_k)/steps
             listTh = [th for i in range(steps)]
             listBTh = [bayes_th for i in range(steps)]
+            listX2 = [x2 for i in range(steps)]
             listPb = [step*i for i in range(steps)]
             #plt.plot(listTh, listPb, 'k--')
             plt.plot(listBTh, listPb, 'k')
+            #plt.plot(listX2, listPb, 'k--')
             #plt.xlabel('True Positive (Cosine Similarity)')
             plt.xlabel('Cosine similarity')
             plt.xlim(0.2, 1.0)
             #plt.ylim(0.0, 10.0) # CUB
             #plt.ylim(0.0, 12.0) # miniImagenet
-            plt.ylim(0.0, 15.0) # euMoths
-            #plt.ylim(0.0, 20.0) # Omniglot
+            #plt.ylim(0.0, 15.0) # euMoths
+            plt.ylim(0.0, 20.0) # Omniglot
             plt.ylabel('Probability (%)')
             #plt.title('Pre-trained on ImageNet')
             #plt.title('Fine-tuned on EU Moths')
