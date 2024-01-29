@@ -7,7 +7,49 @@ Created on Fri Nov 17 16:44:30 2023
 
 import matplotlib.pyplot as plt
 import pandas as pd
-#import numpy as np
+import numpy as np
+
+
+def plotBayesToleranceAvg(data_df, fewShotClassifier, title, limits, n_way=6, n_shot=5):
+    
+    data_df = data_df.loc[data_df['Novelty'] == True]
+     
+    # Header
+    # Model,FewShotClassifier,Way,Shot,Query,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Percentage,Alpha,ModelName
+    
+    data_df = data_df.loc[data_df['FewShotClassifier'] == fewShotClassifier]
+    data_df = data_df.loc[data_df['Shot'] == n_shot]
+    data_df = data_df.loc[data_df['Way'] == n_way]
+    data_df = data_df.sort_values(by=['Percentage'])
+    #print(data_df['Accuracy'].to_list())
+
+
+    percentages = [97, 97, 98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102, 102.5, 103]
+    accuracy = []
+    precision = []
+    recall = []
+    f1 = []
+    for percentage in percentages:
+        data_p_df = data_df.loc[data_df['Percentage'] == percentage]
+        print(np.mean(data_p_df['Accuracy'].to_list()))
+        accuracy.append(np.mean(data_p_df['Accuracy'].to_list()))
+        precision.append(np.mean(data_p_df['Precision'].to_list()))
+        recall.append(np.mean(data_p_df['Recall'].to_list()))
+        f1.append(np.mean(data_p_df['F1'].to_list()))
+        
+    ax = plt.gca()
+    plt.plot(percentages, accuracy, 'r')
+    plt.plot(percentages, precision, 'b')
+    plt.plot(percentages, recall, 'g')
+    plt.plot(percentages, f1, 'k')
+
+    plt.legend(["Accuracy", "Precision", "Recall", "F1"])
+    plt.title(title)
+    plt.ylabel('Score')
+    plt.xlabel('Percentage')
+    plt.ylim(limits) # Omniglot
+    plt.show()
+    
 
 def plotBayesTolerance(data_df, fewShotClassifier, title, limits, n_way=6, n_shot=5):
     
@@ -49,6 +91,7 @@ def plotBayesTolerance(data_df, fewShotClassifier, title, limits, n_way=6, n_sho
     #                                        color='green', ax=ax)
     plt.title(title)
     plt.ylabel('Score')
+    plt.xlabel('Percentage')
     plt.ylim(limits) # Omniglot
     plt.show()
     
@@ -75,7 +118,8 @@ def plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, title, limits, n_shot=5)
         
     plt.title(title)
     plt.ylabel('F1-score')
-    plt.xlabel('N-way')
+    plt.xlabel('K-way')
+    #plt.xlim(0, 40)
     plt.ylim(limits) # Omniglot
     plt.legend(legend)
     plt.show()
@@ -181,12 +225,16 @@ def plotScoresVsWays(data_df, fewShotClassifier, title, limits, Novelty=True, n_
     #plt.title('Omniglot dataset ')
     plt.title(title)
     plt.ylabel('Score')
-    plt.xlabel('N-way')
+    plt.xlabel('K-way')
     plt.ylim(limits) # Omniglot
-    #plt.xlim(0, 50)
+    #plt.xlim(0, 40)
     plt.legend(["FSL Acc.", "FSNL Acc.", "Precision", "Recall", "F1-Score"])
     plt.show()
 
+def plotBayesAlphaOmniglot5Rand():
+
+    data_df = pd.read_csv("./paperData/resnet12_Omniglot_novelty_bayes_test.txt")   
+    plotBayesToleranceAvg(data_df, "Prototypical", "Omniglot learned TH (10-way)", (0.7, 1.0), n_shot=5, n_way=11)         
 
 def plotBayesAlphaOmniglot():
     
@@ -261,14 +309,14 @@ def plotWaysOmniglot(fewShotClassifier):
     #data_df = pd.read_csv("./modelsOmniglotAdvStd4_1/results-Nw/resnet12_Omniglot_10_novelty_ways_test.txt")
     #plotScoresVsWays(data_df, fewShotClassifier, "Omniglot R2 1.0 " + fewShotClassifier, (0.6, 1.0))    
 
-def plotWaysEUMoths(fewShotClassifier):
+# def plotWaysEUMoths(fewShotClassifier):
 
-    data_df = pd.read_csv("./modelsFinalPreAdv/results_Nw/resnet18_euMoths_5_novelty_ways_test.txt")
-    plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=0.5)", (0.1, 1.0))
-    #plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=0.5 " + fewShotClassifier + ")", (0.1, 1.0))
-    data_df = pd.read_csv("./modelsFinalPreAdv/results_Nw/resnet18_euMoths_10_novelty_ways_test.txt")
-    plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=1.0 )", (0.1, 1.0))
-    #plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=1.0 " + fewShotClassifier + ")", (0.1, 1.0))
+#     data_df = pd.read_csv("./modelsFinalPreAdv/results_Nw/resnet18_euMoths_5_novelty_ways_test.txt")
+#     plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=0.5)", (0.1, 1.0))
+#     #plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=0.5 " + fewShotClassifier + ")", (0.1, 1.0))
+#     data_df = pd.read_csv("./modelsFinalPreAdv/results_Nw/resnet18_euMoths_10_novelty_ways_test.txt")
+#     plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=1.0 )", (0.1, 1.0))
+#     #plotScoresVsWays(data_df, fewShotClassifier, "EU moths (Alpha=1.0 " + fewShotClassifier + ")", (0.1, 1.0))
 
 def plotWaysMiniImagenet(fewShotClassifier):
 
@@ -284,19 +332,56 @@ def plotWaysMiniImagenet(fewShotClassifier):
  
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red']
     plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "miniImageNet Novelty F1-score", (0.0, 1.0))
-       
+
+
+def plotWaysEUMoths(fewShotClassifier):
+
+    data_dfs = []
+    for alpha in range(11):
+        if alpha in [3, 4, 5, 6, 7]:
+            continue
+        resultFile = "./modelsAlphaEUMoths/results-Nw/resnet18_euMoths_" + str(alpha) + "_novelty_ways_test.txt"
+        data_df = pd.read_csv(resultFile)
+        alpha /= 10
+        plotScoresVsWays(data_df, fewShotClassifier, f"EU Moths (Alpha={alpha:.1f})", (0.2, 1.0))
+        data_dfs.append(data_df)
+ 
+    colors = ['black', 'blue', 'green', 'brown', 'orange', 'red', 'purple']
+    plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "", (0.2, 1.0))       
+
+
+def plotWaysCUBs(fewShotClassifier):
+
+    data_dfs = []
+    for alpha in range(11):
+        if alpha in [3, 4, 5, 6, 7]:
+            continue
+        resultFile = "./modelsAlphaCUB/results-Nw/resnet18_CUB_" + str(alpha) + "_novelty_ways_test.txt"
+        data_df = pd.read_csv(resultFile)
+        alpha /= 10
+        plotScoresVsWays(data_df, fewShotClassifier, f"CUB (Alpha={alpha:.1f})", (0.2, 1.0))
+        data_dfs.append(data_df)
+ 
+    colors = ['black', 'blue', 'green', 'brown', 'orange', 'red', 'purple']
+    plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "", (0.2, 1.0))       
+
 
 #%% MAIN
 if __name__=='__main__':
 
     
-    plotBayesAlphaOmniglot()
+    #plotBayesAlphaOmniglot()
+    plotBayesAlphaOmniglot5Rand()
 
     fewShotClassifier = "Prototypical"
     #fewShotClassifier = "BD-CSPN"
     
-    plotWaysOmniglot(fewShotClassifier)    
+    #plotWaysOmniglot(fewShotClassifier)    
 
-    plotWaysEUMoths(fewShotClassifier)
+    #plotWaysEUMoths(fewShotClassifier)
+    #fewShotClassifier = "BD-CSPN"
+    #plotWaysEUMoths(fewShotClassifier)
     #plotWaysMiniImagenet(fewShotClassifier)
+
+    #plotWaysCUBs(fewShotClassifier)
     
