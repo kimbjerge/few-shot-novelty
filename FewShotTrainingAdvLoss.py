@@ -140,12 +140,13 @@ def classicTrain(model, modelName, train_loader, val_loader, few_shot_classifier
     return best_state, model, best_epoch, best_validation_accuracy, best_loss
     
 #%% Episodic training      
-def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss, 
+def train_episodic_epoch(lossFunction, 
                          model: FewShotClassifier, 
                          data_loader: DataLoader, 
                          optimizer: Optimizer,
                          slossFunc,
-                         alpha):
+                         alpha,
+                         cosine):
     all_loss = []
     all_closs = []
     all_sloss = []
@@ -190,7 +191,7 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
             
             ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
             sloss = ScatterWithin/ScatterBetween # Minimize scatter within related to scatter between      
-            closs = entropyLossFunction(classification_scores, query_labels.to(DEVICE))
+            closs = lossFunction(classification_scores, query_labels.to(DEVICE))
  
             if torch.isnan(sloss): # Handling division with zero
                 print("sloss nan")
@@ -213,10 +214,36 @@ def train_episodic_epoch(entropyLossFunction: nn.CrossEntropyLoss,
     return mean(all_loss), mean(all_closs), mean(all_sloss), mean(all_scatter_between)
 
 
-def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, 
-                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean", learnRate=0.1, pretrained=False):
+def CosineEmbeddingLoss(scores, labels, margin=0.6):
+# https://pytorch.org/docs/stable/generated/torch.nn.CosineEmbeddingLoss.html#torch.nn.CosineEmbeddingLoss    
+  
+    # 1 - score if y = 1
+    # max(0, score) if y = -1
     
-    entropyLossFunction = nn.CrossEntropyLoss()
+    #print(scores)
+    #print(labels)
+    predicted_idx = scores.max(1)[1]
+    loss_sum = 0
+    for idx in range(len(labels)):
+        score = scores[idx][labels[idx]] 
+        if labels[idx] == predicted_idx[idx]:
+            loss_sum += 1 - score # y = 1, correct predicted
+        else:
+            loss_sum += max([0, score - margin]) # y = -1, wrongly predicted
+        
+    return loss_sum
+
+def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier, 
+                  m1=500, m2=1000, n_epochs=1500, alpha=0.1, slossFunc="Mean", 
+                  cosine=False, learnRate=0.1, pretrained=False):
+    
+    if cosine:
+        entropyLossFunction = CosineEmbeddingLoss
+        #entropyLossFunction = nn.CrossEntropyLoss()
+        print("CosineEmbeddingLoss, margin = 0.6")
+    else:
+        entropyLossFunction = nn.CrossEntropyLoss()
+        print("CrossEntropyLoss")
     
     #scheduler_milestones = [10, 30]
     if n_epochs < 1000:
@@ -251,7 +278,8 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
         print(f"Epoch {epoch}")
         average_loss, average_closs, average_sloss, average_scatter_between = train_episodic_epoch(entropyLossFunction, 
                                                                                                    few_shot_classifier, train_loader, 
-                                                                                                   train_optimizer, slossFunc, alpha)
+                                                                                                   train_optimizer, slossFunc, 
+                                                                                                   alpha, cosine)
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
@@ -340,9 +368,9 @@ if __name__=='__main__':
     parser.add_argument('--cosine', default='', type=bool) # default use Euclidian distance when no parameter ''
     parser.add_argument('--epochs', default=350, type=int) # epochs
     parser.add_argument('--m1', default=120, type=int) # learning rate scheduler for milstone 1 (epochs)
-    parser.add_argument('--m2', default=250, type=int) # learning rate scheduler for rate milstone 2 (epochs)
+    parser.add_argument('--m2', default=190, type=int) # learning rate scheduler for rate milstone 2 (epochs)
     parser.add_argument('--slossFunc', default='Std') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean)
-    parser.add_argument('--alpha', default=0.8, type=float) # alpha parameter for sloss function (0-1)
+    parser.add_argument('--alpha', default=0.0, type=float) # alpha parameter for sloss function (0-1)
     parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
     parser.add_argument('--device', default='cpu') # training on cpu or cuda:0-3
     parser.add_argument('--tasks', default='200', type=int) # training tasks per epoch (*6 queries)
@@ -472,10 +500,10 @@ if __name__=='__main__':
 
     if args.cosine:
         few_shot_classifier = PrototypicalNetworksNovelty(model).to(DEVICE)
-        print("Use prototypical network with cosine distance to validate")
+        print("Use prototypical network with cosine distance to train and validate")
     else:
         few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
-        print("Use prototypical network with euclidian distance to validate")
+        print("Use prototypical network with euclidian distance to train and validate")
     
     best_scatter_between = 0
     best_loss = 0
@@ -496,6 +524,7 @@ if __name__=='__main__':
                                                                                                       m1=args.m1, m2=args.m2, 
                                                                                                       n_epochs=n_epochs, alpha=args.alpha, 
                                                                                                       slossFunc=args.slossFunc,
+                                                                                                      cosine=args.cosine,
                                                                                                       learnRate=args.learnRate,
                                                                                                       pretrained=args.pretrained)
         few_shot_classifier.load_state_dict(best_state)
