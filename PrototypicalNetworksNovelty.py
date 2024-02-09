@@ -97,34 +97,63 @@ class PrototypicalNetworksNovelty(FewShotClassifier):
         scores_std = None
         
         # Extract the features of query images
-        query_features = self.compute_features(query_images)
-        self._raise_error_if_features_are_multi_dimensional(query_features)
+        self.query_features = self.compute_features(query_images)
+        self._raise_error_if_features_are_multi_dimensional(self.query_features)
 
         # Compute the euclidean distance from queries to prototypes
         if self.use_normcorr == 1: # Normalized correlation to mean of prototype features
-            scores = self.normxcorr(self.prototypes, query_features)
+            scores = self.normxcorr(self.prototypes, self.query_features)
         else:
             if self.use_normcorr == 2: # Mean of normalized correlation to prototype features
-                n_way = len(torch.unique(self.support_labels))
-                scores = torch.zeros([len(query_features) , n_way], dtype=torch.float32)    
-                scores_std = torch.zeros([len(query_features) , n_way], dtype=torch.float32)    
+                self.k_way = len(torch.unique(self.support_labels))
+                scores = torch.zeros([len(self.query_features) , self.k_way], dtype=torch.float32)    
+                scores_std = torch.zeros([len(self.query_features) , self.k_way], dtype=torch.float32)    
                 # Prototype i is the mean of all instances of features corresponding to labels == i
-                for label in range(n_way):           
+                for label in range(self.k_way):           
                     support_features = self.support_features[self.support_labels == label]
-                    scores_label = self.normxcorr(support_features, query_features)
+                    scores_label = self.normxcorr(support_features, self.query_features)
                     scores[:,label] = scores_label.mean(1)   
                     scores_std[:,label] = scores_label.std(1)
             else: # Euclidian of cosine distance to mean of prototype features
                 if self.use_normcorr == 3: # Euclidian distance to prototypes
-                    scores = self.l2_distance_to_prototypes(query_features)
+                    scores = self.l2_distance_to_prototypes(self.query_features)
                 else: # Default cosine distance to prototypes (0) same as 1
-                    scores = self.cosine_distance_to_prototypes(query_features)
+                    scores = self.cosine_distance_to_prototypes(self.query_features)
                 
         #return self.softmax_if_specified(scores), scores_std # Std not used
         return self.softmax_if_specified(scores)
-
-
+    
+    
+    def multivariantScatterLoss(self):
         
+        num_centers = len(self.prototypes)
+        center_points = self.prototypes
+        
+        scatterBetweenSum = 0
+        for i in range(num_centers-1):
+            for j in range(num_centers - (i+1)):
+                scatterDiff = center_points[i] - center_points[i+j+1]
+                scatterBetween = scatterDiff @ torch.t(scatterDiff)
+                scatterBetweenSum += scatterBetween
+        
+        support_features = self.support_features
+        support_labels = self.support_labels
+        
+        scatterWithinSum = 0
+        for i in range(num_centers):
+            support_features_center = support_features[support_labels == i]
+            for j in range(len(support_features_center)):
+                scatterDiff = support_features_center[j] - center_points[i]
+                scatterWithin = scatterDiff @ torch.t(scatterDiff)
+                scatterWithinSum += scatterWithin
+            
+        #scatterWithinLoss = torch.sqrt(scatterWithinSum)
+        #scatterBetweenLoss = torch.sqrt(scatterBetweenSum)
+        scatterLoss = scatterWithinSum/scatterBetweenSum
+        
+        return scatterWithinSum, scatterBetweenSum, scatterLoss
+    
+      
     @staticmethod
     def is_transductive() -> bool:
         return False

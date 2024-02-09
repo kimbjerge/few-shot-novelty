@@ -162,36 +162,42 @@ def train_episodic_epoch(lossFunction,
             query_labels,
             _,
         ) in tqdm_train:
+
             optimizer.zero_grad()
             model.process_support_set(
                 support_images.to(DEVICE), support_labels.to(DEVICE)
             )
-            classification_scores = model(query_images.to(DEVICE))
 
-            correct_episodes = classification_scores[torch.max(classification_scores, 1)[1] == query_labels.to(DEVICE)]
-            correct_scores = correct_episodes.max(1)[0]
-            correct_pred_idx = correct_episodes.max(1)[1]            
+            classification_scores = model(query_images.to(DEVICE))
             
-            #Select scores part of correct predicitons that don't belong to the query label
-            num_rows = correct_episodes.shape[0]
-            num_cols = correct_episodes.shape[1]
-            wrong_scores = torch.empty(num_rows*(num_cols-1)).to(DEVICE)
-            idx = 0
-            for i in range(num_rows):
-                for j in range(num_cols):
-                    if j != correct_pred_idx[i]:
-                        wrong_scores[idx]=correct_episodes[i][j]
-                        idx += 1
-            
-            ScatterWithin = 1 # Mean only
-            if slossFunc == "Var": # Mean and variance   
-                ScatterWithin = correct_scores.var() + wrong_scores.var()
-            if slossFunc == "Std": # Mean and standard deviation
-                ScatterWithin = correct_scores.std() + wrong_scores.std()
-            
-            ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
-            sloss = ScatterWithin/ScatterBetween # Minimize scatter within related to scatter between      
             closs = lossFunction(classification_scores, query_labels.to(DEVICE))
+
+            if slossFunc == "Multi":
+                ScatterBetween, ScatterWithin, sloss = model.multivariantScatterLoss()
+            else:
+                correct_episodes = classification_scores[torch.max(classification_scores, 1)[1] == query_labels.to(DEVICE)]
+                correct_scores = correct_episodes.max(1)[0]
+                correct_pred_idx = correct_episodes.max(1)[1]            
+                
+                #Select scores part of correct predicitons that don't belong to the query label
+                num_rows = correct_episodes.shape[0]
+                num_cols = correct_episodes.shape[1]
+                wrong_scores = torch.empty(num_rows*(num_cols-1)).to(DEVICE)
+                idx = 0
+                for i in range(num_rows):
+                    for j in range(num_cols):
+                        if j != correct_pred_idx[i]:
+                            wrong_scores[idx]=correct_episodes[i][j]
+                            idx += 1
+                
+                ScatterWithin = 1 # Mean only
+                if slossFunc == "Var": # Mean and variance   
+                    ScatterWithin = correct_scores.var() + wrong_scores.var()
+                if slossFunc == "Std": # Mean and standard deviation
+                    ScatterWithin = correct_scores.std() + wrong_scores.std()
+                
+                ScatterBetween = abs(correct_scores.mean() - wrong_scores.mean())
+                sloss = ScatterWithin/ScatterBetween # Minimize scatter within related to scatter between      
  
             if torch.isnan(sloss): # Handling division with zero
                 print("sloss nan")
@@ -369,8 +375,8 @@ if __name__=='__main__':
     parser.add_argument('--epochs', default=350, type=int) # epochs
     parser.add_argument('--m1', default=120, type=int) # learning rate scheduler for milstone 1 (epochs)
     parser.add_argument('--m2', default=190, type=int) # learning rate scheduler for rate milstone 2 (epochs)
-    parser.add_argument('--slossFunc', default='Std') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean)
-    parser.add_argument('--alpha', default=0.0, type=float) # alpha parameter for sloss function (0-1)
+    parser.add_argument('--slossFunc', default='Multi') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean), multivariate (Multi)
+    parser.add_argument('--alpha', default=0.9, type=float) # alpha parameter for sloss function (0-1)
     parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
     parser.add_argument('--device', default='cpu') # training on cpu or cuda:0-3
     parser.add_argument('--tasks', default='200', type=int) # training tasks per epoch (*6 queries)
@@ -502,7 +508,8 @@ if __name__=='__main__':
         few_shot_classifier = PrototypicalNetworksNovelty(model).to(DEVICE)
         print("Use prototypical network with cosine distance to train and validate")
     else:
-        few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
+        #few_shot_classifier = PrototypicalNetworks(model).to(DEVICE)
+        few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=3).to(DEVICE)
         print("Use prototypical network with euclidian distance to train and validate")
     
     best_scatter_between = 0
@@ -549,6 +556,3 @@ if __name__=='__main__':
     print(textLine)
     with open('ResultTrainAdvLoss.txt', 'a') as f:
         f.write(textLine)
-
-        
-    

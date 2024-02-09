@@ -158,7 +158,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     
     # Arguments to be changed 
-    parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains Ominiglot models
+    #parser.add_argument('--modelDir', default='modelsOmniglotAdvStd4') #Directory that contains Ominiglot models
+    parser.add_argument('--modelDir', default='modelsOmniglotAdvMulti4') #Directory that contains Ominiglot models
     #parser.add_argument('--modelDir', default='modelsOmniglot') #Directory that contains Ominiglot models
     #parser.add_argument('--modelDir', default='modelsFinalAdv_L0_01') #Directory that contains Ominiglot models
     #parser.add_argument('--modelDir', default='modelsFinalPreAdv') #Directory that contains other pretrained models
@@ -166,6 +167,7 @@ if __name__=='__main__':
     parser.add_argument('--query', default=10, type=int) # Use 10 for Omniglot and 6 for euMoths
     parser.add_argument('--shot', default=5, type=int)  # Number of shot used during learning must be 5
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used, only bayes are tested
+    parser.add_argument('--cosine', default='', type=bool) # use Euclidian distance when no parameter ''
     parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
 
     # Theses arguments must not be changed and will be updated based on the model name
@@ -201,6 +203,13 @@ if __name__=='__main__':
 
     #%% Create model and prepare for training
     DEVICE = args.device
+    
+    similarityName = ""
+    if args.cosine:
+        similarity_param = 1 # Use cosine similarity
+    else:
+        similarity_param = 3 # Use euclidian distance
+        similarityName = "Euclidean"
 
     for modelName in os.listdir(args.modelDir):
         if '.pth' in modelName:
@@ -269,12 +278,12 @@ if __name__=='__main__':
             
             novelty_th = 0.8  # Not used during learning  
             
-            few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=1).to(DEVICE)
+            few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=similarity_param).to(DEVICE) # Euclidian
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                          novelty_th, args.novelty, n_way, args.learning, 
                                                                          n_workers, None, DEVICE)
             
-            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(n_way) + ','  
+            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + similarityName + ',' + str(n_way) + ','  
             line += str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + ',' + str(abs(avg-avg_o)) + '\n'
             print(line)
@@ -304,19 +313,19 @@ if __name__=='__main__':
                 novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)    
 
             few_shot_classifiers =  [ 
-                                     # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)], # Cosine dist.
-                                     # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)], - euclidian dist.
+                                     #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
+                                     #["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)], # Cosine dist. (1)
+                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=similarity_param)], # euclidian dist. (3)
                                      #["PrototypicalNetworks", PrototypicalNetworks(model)], # No
                                      #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
                                      #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
                                      #["SimpleShot", SimpleShot(model)], No - too simple
-                                     ["Finetune", Finetune(model)], 
+                                     #["Finetune", Finetune(model)], 
                                      # #["FEAT", FEAT(model)], - error few-shot and novelty
-                                     ["BD-CSPN", BDCSPN(model)], 
+                                     #["BD-CSPN", BDCSPN(model)], 
                                      #["LaplacianShot", LaplacianShot(model)], No - special
                                      # #["PT-MAP", PTMAP(model)], No
-                                     ["TIM", TIM(model)]
+                                     #["TIM", TIM(model)]
                                     ]
                 
             test_set = load_test_dataset(args.dataset, args.learning)
@@ -342,7 +351,7 @@ if __name__=='__main__':
                                                                                     novelty_th, args.novelty, n_way, args.learning, 
                                                                                     n_workers, metric, DEVICE)
                         
-                        line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(args.novelty) + ',' 
+                        line = args.modelDir + ',' + args.model + ',' + few_shot[0]  + similarityName + ',' + str(args.novelty) + ',' 
                         line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
                         line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
                         line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
