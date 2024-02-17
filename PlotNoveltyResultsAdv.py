@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-n_shot=5
+n_shot=1
 
 def plotBayesToleranceAvg(data_df, fewShotClassifier, title, limits, n_way=6, n_shot=5):
     
@@ -228,10 +228,74 @@ def plotScoresVsWays(data_df, fewShotClassifier, title, limits, Novelty=True, n_
     plt.ylabel('Score')
     plt.xlabel('K-way')
     plt.ylim(limits) # Omniglot
-    #plt.xlim(0, 40)
+    plt.xlim(0, 20)
     plt.legend(["FSL Acc.", "FSNL Acc.", "Precision", "Recall", "F1-Score"])
     plt.show()
+    
+def plotScoresVsNovelClasses(data_df, fewShotClassifier, title, limits, plot20ways=False, Novelty=True, n_shot=n_shot):
+    
+    data_df_novelty = data_df.loc[data_df['Novelty'] == True]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['FewShotClassifier'] == fewShotClassifier]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['Shot'] == n_shot]
+    
+    data_df_ways_5 = data_df_novelty.loc[data_df_novelty['Way'] == 5]
+    data_df_ways_10 = data_df_novelty.loc[data_df_novelty['Way'] == 10]
+    data_df_ways_20 = data_df_novelty.loc[data_df_novelty['Way'] == 20]
+    
+    ax = plt.gca()
+    data_df_ways_5.plot(kind='line',
+                x='Novel',
+                y='Accuracy',
+                color='red', ax=ax)
+    data_df_ways_5.plot(kind='line',
+                x='Novel',
+                y='F1',
+                color='blue', ax=ax)
+   
+    data_df_ways_10.plot(kind='line',
+                x='Novel',
+                y='Accuracy',
+                color='orange', ax=ax)   
+    
+    # data_df_ways_10.plot(kind='line',
+    #             x='Novel',
+    #             y='Precision',
+    #             color='yellow', ax=ax)
+    # data_df_ways_10.plot(kind='line',
+    #             x='Novel',
+    #             y='Recall',
+    #             color='black', ax=ax)
+    
+    data_df_ways_10.plot(kind='line',
+                x='Novel',
+                y='F1',
+                color='green', ax=ax)
+    
+    if plot20ways:
+        data_df_ways_20.plot(kind='line',
+                    x='Novel',
+                    y='Accuracy',
+                    color='yellow', ax=ax)   
+        data_df_ways_20.plot(kind='line',
+                    x='Novel',
+                    y='F1',
+                    color='black', ax=ax)  
 
+    plt.title(title)
+    plt.ylabel('Score')
+    plt.xlabel('M-novel')
+    plt.ylim(limits) 
+    
+    if plot20ways:
+        plt.legend(["5-way Acc.", "5-way F1",  "10-way Acc.", "10-way F1",   "20-way Acc.", "20-way F1"])
+        plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20])
+    else:
+        plt.legend(["5-way Acc.", "5-way F1",  "10-way Acc.", "10-way F1"])
+        #plt.legend(["5-way Acc.", "5-way F1",  "10-way Acc.", "10-way Precision", "10-way Recall", "10-way F1"])
+        plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30])
+    plt.xlim(0, 20)
+    plt.show()
+    
 def plotBayesAlphaOmniglot5Rand():
 
     data_df = pd.read_csv("./paperData/resnet12_Omniglot_novelty_bayes_test.txt")   
@@ -272,6 +336,16 @@ def plotBayesAlphaOmniglot():
     #data_df = pd.read_csv("./modelsOmniglotAdvStd4_1/results-5w/resnet12_Omniglot_novelty_test_GPU.txt")
     #plotScorsVsAlpha(data_df, "Prototypical", "Omniglot R2 Prototypical", (0.8, 1.0), n_shot=5)
     #plotScorsVsAlpha(data_df, "BD-CSPN", "Omniglot R2 BD-CSPN", (0.8, 1.0), n_shot=5)
+
+def plotNoveltiesOmniglot(fewShotClassifier):
+
+    data_df_0 = pd.read_csv("./modelsOmniglotAdvStd4/results-Mn/resnet12_Omniglot_M_novelty_test.txt")
+    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL Omniglot (Alpha=1.0, " + fewShotClassifier + ")", (0.6, 1.0), plot20ways=True)
+
+def plotNoveltiesEUMoths(fewShotClassifier):
+
+    data_df_0 = pd.read_csv("./modelsAlphaEUMoths/results-Nm/resnet18_euMoths_M_novelty_test.txt")
+    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL EU Moths (Alpha=1.0, " + fewShotClassifier + ")",  (0.6, 1.0), plot20ways=False)
 
 def plotWaysOmniglot(fewShotClassifier):
 
@@ -321,7 +395,8 @@ def plotWaysOmniglot(fewShotClassifier):
 
 def plotWaysMultiOmniglot(fewShotClassifier):
 
-    data_df_0 = pd.read_csv("./modelsOmniglotAdvMulti4/results-Nw/resnet12_Omniglot_0_novelty_ways_test.txt")
+    #data_df_0 = pd.read_csv("./modelsOmniglotAdvMulti4/results-Nw/resnet12_Omniglot_0_novelty_ways_test.txt")
+    data_df_0 = pd.read_csv("./modelsOmniglotAdvMulti4/results-Nw/train20ways/resnet12_Omniglot_0_novelty_ways_test.txt")
     plotScoresVsWays(data_df_0, fewShotClassifier, "Omniglot (Alpha=0.0, " + fewShotClassifier + ")", (0, 1.0))
     data_df_1 = pd.read_csv("./modelsOmniglotAdvMulti4/results-Nw/resnet12_Omniglot_1_novelty_ways_test.txt")
     plotScoresVsWays(data_df_1, fewShotClassifier, "Omniglot (Alpha=0.1, " + fewShotClassifier + ")", (0, 1.0))
@@ -414,13 +489,15 @@ if __name__=='__main__':
 
     fewShotClassifier = "Prototypical"
     #fewShotClassifier = "BD-CSPN"
-    plotWaysMultiOmniglot(fewShotClassifier)
-    #plotWaysOmniglot(fewShotClassifier)    
+    #plotWaysMultiOmniglot(fewShotClassifier)
+    #plotWaysOmniglot(fewShotClassifier)  
+    plotNoveltiesOmniglot(fewShotClassifier)
 
     #plotWaysEUMoths(fewShotClassifier)
     #plotWaysMultiEUMoths(fewShotClassifier)
     #fewShotClassifier = "BD-CSPN"
     #plotWaysEUMoths(fewShotClassifier)
+    plotNoveltiesEUMoths(fewShotClassifier)
     #plotWaysMiniImagenet(fewShotClassifier)
 
     #plotWaysCUBs(fewShotClassifier)

@@ -270,7 +270,7 @@ if __name__=='__main__':
                 test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
             )
                                   
-            resFileName = args.model + '_' + args.dataset + '_' + str(args.novel) + "_novelty_learn.txt"
+            resFileName = args.model + '_' + args.dataset + "_M_novelty_learn.txt"
             line = "ModelDir,ModelName,FewShotClassifier,Way,Shot,Query,Novel,Accuracy,BayesThreshold,Average,Std,AverageOutlier,StdOutlier,MeanBetween\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
@@ -300,7 +300,7 @@ if __name__=='__main__':
             args.learning = False
             n_test_tasks = 500 # 1000 = 10000 test images
 
-            resFileName =  args.model + '_' +  args.dataset + "_" + str(args.novel) + "_novelty_test.txt"
+            resFileName =  args.model + '_' +  args.dataset + "_M_novelty_test.txt"
             line = "ModelDir,Model,FewShotClassifier,Novelty,Way,Shot,Query,Novel,Accuracy,Precision,Recall,F1,TP,FP,FN,Method,Threshold,Alpha,ModelName\n"
             if os.path.exists(resDir+subDir+resFileName):
                 resFile = open(resDir+subDir+resFileName, "a")
@@ -337,6 +337,7 @@ if __name__=='__main__':
             for n_shot in [5, 1]: # Test with 5 and 1 shot               
                 #for use_novelty in [True, False]: # Test with and without novelty
                     use_novelty = True
+                    print("Testing with n-shot", n_shot, "novelty", use_novelty)
                     args.novelty = use_novelty
                     if args.novelty:
                         n_novel = args.novel 
