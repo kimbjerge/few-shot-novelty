@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-n_shot=1
+n_shot=5
 
 def plotBayesToleranceAvg(data_df, fewShotClassifier, title, limits, n_way=6, n_shot=5):
     
@@ -296,6 +296,119 @@ def plotScoresVsNovelClasses(data_df, fewShotClassifier, title, limits, plot20wa
     plt.xlim(0, 20)
     plt.show()
     
+
+def plotTHSensitivityWays(data_df, data_df_equal, fewShotClassifier, title, limits, n_shot=n_shot, m_novel=1):
+    
+    data_df_novelty = data_df.loc[data_df['Novelty'] == True]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['FewShotClassifier'] == fewShotClassifier]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['Shot'] == n_shot]
+    data_df_novelty['Way'] = m_novel / (data_df_novelty['Way'] - 1) # Leaned with n-way + 1
+
+    data_df_equal_n = data_df_equal.loc[data_df_equal['Novelty'] == True]
+    data_df_equal_n = data_df_equal_n.loc[data_df_equal_n['FewShotClassifier'] == fewShotClassifier]
+    data_df_equal_n = data_df_equal_n.loc[data_df_equal_n['Shot'] == n_shot]
+    data_df_equal_n['Way'] = m_novel / (data_df_equal_n['Way'] - 1) # Leaned with n-way + 1
+    
+    ax = plt.gca()
+
+    data_df_novelty.plot(kind='line',
+                x='Way',
+                y='Precision',
+                color='blue', ax=ax)
+    
+    data_df_novelty.plot(kind='line',
+                x='Way',
+                y='Recall',
+                color='green', ax=ax)
+    
+    data_df_novelty.plot(kind='line',
+                x='Way',
+                y='F1',
+                color='black', ax=ax)
+ 
+    data_df_equal_n.plot(kind='line',
+                x='Way',
+                y='Precision',
+                linestyle = 'dashed',
+                color='blue', ax=ax)
+    
+    data_df_equal_n.plot(kind='line',
+                x='Way',
+                y='Recall',
+                linestyle = 'dashed',
+                color='green', ax=ax)
+    
+    data_df_equal_n.plot(kind='line',
+                x='Way',
+                y='F1',
+                linestyle = 'dashed',
+                color='black', ax=ax)
+    
+    plt.title(title)
+    plt.ylabel('Score')
+    plt.xlabel('M/K')
+    plt.ylim(limits) 
+    #plt.xlim(0, 40)
+    plt.legend(["Precision", "Recall", "F1-Score", "Precision (M=K)", "Recall (M=K)", "F1-Score (M=K)"])
+    plt.show()   
+    
+def plotTHSensitivityNovel(data_df, data_df_equal, fewShotClassifier, title, limits, n_shot=n_shot, k_way=5):
+    
+    data_df_novelty = data_df.loc[data_df['Novelty'] == True]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['FewShotClassifier'] == fewShotClassifier]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['Shot'] == n_shot]
+    data_df_novelty = data_df_novelty.loc[data_df_novelty['Way'] == k_way]
+    data_df_novelty['Novel'] = data_df_novelty['Novel'] / k_way
+
+    data_df_equal_n = data_df_equal.loc[data_df_equal['Novelty'] == True]
+    data_df_equal_n = data_df_equal_n.loc[data_df_equal_n['FewShotClassifier'] == fewShotClassifier]
+    data_df_equal_n = data_df_equal_n.loc[data_df_equal_n['Shot'] == n_shot]
+    data_df_equal_n = data_df_equal_n.loc[data_df_equal_n['Way'] == k_way]
+    data_df_equal_n['Novel'] = data_df_equal_n['Novel'] / k_way
+    
+    ax = plt.gca()
+
+    data_df_novelty.plot(kind='line',
+                x='Novel',
+                y='Precision',
+                color='blue', ax=ax)
+    
+    data_df_novelty.plot(kind='line',
+                x='Novel',
+                y='Recall',
+                color='green', ax=ax)
+    
+    data_df_novelty.plot(kind='line',
+                x='Novel',
+                y='F1',
+                color='black', ax=ax)
+ 
+    data_df_equal_n.plot(kind='line',
+                x='Novel',
+                y='Precision',
+                linestyle = 'dashed',
+                color='blue', ax=ax)
+    
+    data_df_equal_n.plot(kind='line',
+                x='Novel',
+                y='Recall',
+                linestyle = 'dashed',
+                color='green', ax=ax)
+    
+    data_df_equal_n.plot(kind='line',
+                x='Novel',
+                y='F1',
+                linestyle = 'dashed',
+                color='black', ax=ax)
+    
+    plt.title(title)
+    plt.ylabel('Score')
+    plt.xlabel('M/K')
+    plt.ylim(limits) 
+    #plt.xlim(0, 40)
+    plt.legend(["Precision", "Recall", "F1-Score", "Precision (M=K)", "Recall (M=K)", "F1-Score (M=K)"])
+    plt.show()
+    
 def plotBayesAlphaOmniglot5Rand():
 
     data_df = pd.read_csv("./paperData/resnet12_Omniglot_novelty_bayes_test.txt")   
@@ -340,12 +453,12 @@ def plotBayesAlphaOmniglot():
 def plotNoveltiesOmniglot(fewShotClassifier):
 
     data_df_0 = pd.read_csv("./modelsOmniglotAdvStd4/results-Mn/resnet12_Omniglot_M_novelty_test.txt")
-    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL Omniglot (Alpha=1.0, " + fewShotClassifier + ")", (0.6, 1.0), plot20ways=True)
+    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL Omniglot (Alpha=1.0)", (0.7, 1.0), plot20ways=True)
 
 def plotNoveltiesEUMoths(fewShotClassifier):
 
-    data_df_0 = pd.read_csv("./modelsAlphaEUMoths/results-Nm/resnet18_euMoths_M_novelty_test.txt")
-    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL EU Moths (Alpha=1.0, " + fewShotClassifier + ")",  (0.6, 1.0), plot20ways=False)
+    data_df_0 = pd.read_csv("./modelsAlphaEUMoths/results-Mn/resnet18_euMoths_M_novelty_test.txt")
+    plotScoresVsNovelClasses(data_df_0, fewShotClassifier, "FSNL EU Moths (Alpha=1.0)",  (0.5, 1.0), plot20ways=True)
 
 def plotWaysOmniglot(fewShotClassifier):
 
@@ -371,7 +484,9 @@ def plotWaysOmniglot(fewShotClassifier):
     data_df_9 = pd.read_csv("./modelsOmniglotAdvStd4/results-Nw/resnet12_Omniglot_9_novelty_ways_test.txt")
     plotScoresVsWays(data_df_9, fewShotClassifier, "Omniglot (Alpha=0.9, " + fewShotClassifier + ")" , (0.5, 1.0))
     data_df_10 = pd.read_csv("./modelsOmniglotAdvStd4/results-Nw/resnet12_Omniglot_10_novelty_ways_test.txt")
-    plotScoresVsWays(data_df_10, fewShotClassifier, "Omniglot (Alpha=1.0, " + fewShotClassifier + ")", (0.5, 1.0))
+    plotScoresVsWays(data_df_10, fewShotClassifier, "Omniglot (5-Way,Alpha=1.0, " + fewShotClassifier + ")", (0.5, 1.0))
+    data_df_W20_10 = pd.read_csv("./modelsOmniglotAdvStd20Ways/results-Nw/resnet12_Omniglot_10_novelty_ways_test.txt")
+    plotScoresVsWays(data_df_W20_10, fewShotClassifier, "Omniglot (20-Way, Alpha=1.0, " + fewShotClassifier + ")", (0.5, 1.0))
     
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red']
     data_dfs = [data_df_0, data_df_1, data_df_2, data_df_8, data_df_9, data_df_10]
@@ -432,7 +547,6 @@ def plotWaysMiniImagenet(fewShotClassifier):
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red']
     plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "miniImageNet Novelty F1-score", (0.0, 1.0))
 
-
 def plotWaysEUMoths(fewShotClassifier):
 
     data_dfs = []
@@ -447,6 +561,12 @@ def plotWaysEUMoths(fewShotClassifier):
  
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red', 'purple']
     plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "", (0.2, 1.0))       
+
+    alpha = 10
+    resultFile = "./modelsAlphaEUMoths20Ways/results-Nw/resnet18_euMoths_" + str(alpha) + "_novelty_ways_test.txt"
+    data_df = pd.read_csv(resultFile)
+    alpha /= 10
+    plotScoresVsWays(data_df, fewShotClassifier, f"EU Moths (20-Way, Alpha={alpha:.1f})", (0.2, 1.0))
 
 
 def plotWaysMultiEUMoths(fewShotClassifier):
@@ -479,6 +599,28 @@ def plotWaysCUBs(fewShotClassifier):
     colors = ['black', 'blue', 'green', 'brown', 'orange', 'red', 'purple']
     plotsF1VsAlpha(data_dfs, colors, fewShotClassifier, "", (0.2, 1.0))       
 
+def plotTHSensitivity(fewShotClassifier):
+    
+    data_df_10 = pd.read_csv("./modelsOmniglotAdvStd4/results-Nw/resnet12_Omniglot_10_novelty_ways_test.txt")
+    data_df_10_sense = pd.read_csv("./modelsOmniglotAdvStd4/results-THsensitivity/resnet12_Omniglot_10_novelty_ways_test.txt")
+    #plotTHSensitivityWays(data_df_10, data_df_10_sense, fewShotClassifier, "Omniglot threshold sensitity to M/K", (0.4, 1.0))
+    plotTHSensitivityWays(data_df_10, data_df_10_sense, fewShotClassifier, "", (0.4, 1.0))
+
+    data_df_10 = pd.read_csv("./modelsAlphaEUMoths/results-Nw/resnet18_euMoths_10_novelty_ways_test.txt")
+    data_df_10_sense = pd.read_csv("./modelsAlphaEUMoths/results-THsensitivity/resnet18_euMoths_10_novelty_ways_test.txt")
+    #plotTHSensitivityWays(data_df_10, data_df_10_sense, fewShotClassifier, "EU Moths threshold sensitity to M/K", (0.3, 1.0))
+    plotTHSensitivityWays(data_df_10, data_df_10_sense, fewShotClassifier, "", (0.3, 1.0))
+    
+    data_df_10 = pd.read_csv("./modelsOmniglotAdvStd4/results-Mn/resnet12_Omniglot_5W_M_novelty_test.txt")
+    data_df_10_sense = pd.read_csv("./modelsOmniglotAdvStd4/results-THsensitivity/resnet12_Omniglot_M_novelty_test.txt")
+    #plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "Omniglot threshold sensitity to M/K", (0.7, 1.0))
+    plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "", (0.7, 1.0))
+
+    data_df_10 = pd.read_csv("./modelsAlphaEUMoths/results-Mn/resnet18_euMoths_M_novelty_test.txt")
+    data_df_10_sense = pd.read_csv("./modelsAlphaEUMoths/results-THsensitivity/resnet18_euMoths_M_novelty_test.txt")
+    #plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "EU Moths threshold sensitity to M/K", (0.7, 1.0))
+    plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "", (0.7, 1.0))
+
 
 #%% MAIN
 if __name__=='__main__':
@@ -490,15 +632,20 @@ if __name__=='__main__':
     fewShotClassifier = "Prototypical"
     #fewShotClassifier = "BD-CSPN"
     #plotWaysMultiOmniglot(fewShotClassifier)
+    
     #plotWaysOmniglot(fewShotClassifier)  
     plotNoveltiesOmniglot(fewShotClassifier)
 
     #plotWaysEUMoths(fewShotClassifier)
     #plotWaysMultiEUMoths(fewShotClassifier)
     #fewShotClassifier = "BD-CSPN"
+    
     #plotWaysEUMoths(fewShotClassifier)
     plotNoveltiesEUMoths(fewShotClassifier)
+    
     #plotWaysMiniImagenet(fewShotClassifier)
 
     #plotWaysCUBs(fewShotClassifier)
+
+    plotTHSensitivity(fewShotClassifier)
     

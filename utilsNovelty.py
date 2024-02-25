@@ -20,6 +20,9 @@ from NoveltyThreshold import BayesTwoClassThreshold, StdTimesTwoThredshold
 from easyfsl.methods import FewShotClassifier
 
 
+usePriorProbabilities = True # Set to False for testing p(o) = p(k) (Outliers = Known classes)
+#usePriorProbabilities = False # Set to False for testing p(o) = p(k) (Outliers = Known classes)
+
 def plot_images(images: Tensor, title: str, images_per_row: int):
     """
     Plot images in a grid.
@@ -334,8 +337,12 @@ def evaluate_M_novel(
         var_o = np.var(predictions_false)
 
         #learned_th = th
-        bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, n_novel) # 5-way, 1-novel classes (default)
-        print(th, bayes_th)
+        if usePriorProbabilities:
+            bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, n_novel) # 5-way, 1-novel classes (default)
+        else:
+            bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 1, 1) # p(o) = p(k)
+            
+        print("Threshold", th, bayes_th, "Prior", usePriorProbabilities)
         
         if plt_hist:
             # Plot the histogram of true prediction values
@@ -573,8 +580,12 @@ def evaluate(
         var_o = np.var(predictions_false)
 
         #learned_th = th
-        bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, 1) # 5-way, 1-outlier
-        print(th, bayes_th)
+        if usePriorProbabilities:
+            bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, n_way, 1) # 5-way, 1-outlier
+        else:
+            bayes_th, x2 = BayesTwoClassThreshold(var_k, mu_k, var_o, mu_o, 1, 1) # p(o) = p(k)
+            
+        print("Threshold", th, bayes_th, "Prior", usePriorProbabilities)
         
         if plt_hist:
             # Plot the histogram of true prediction values

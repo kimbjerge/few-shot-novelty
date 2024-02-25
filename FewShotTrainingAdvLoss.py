@@ -172,8 +172,10 @@ def train_episodic_epoch(lossFunction,
             
             closs = lossFunction(classification_scores, query_labels.to(DEVICE))
 
-            if slossFunc == "Multi":
+            if slossFunc == "Multi" or slossFunc == "MultiAlt":
                 ScatterBetween, ScatterWithin, sloss = model.multivariantScatterLoss()
+                if slossFunc == "MultiAlt":
+                    sloss = 100000/ScatterBetween   
             else:
                 correct_episodes = classification_scores[torch.max(classification_scores, 1)[1] == query_labels.to(DEVICE)]
                 correct_scores = correct_episodes.max(1)[0]
@@ -281,11 +283,15 @@ def episodicTrain(modelName, train_loader, val_loader, few_shot_classifier,
     best_scatter_between = 0.0
     best_epoch = 0
     for epoch in range(n_epochs):
-        print(f"Epoch {epoch}")
+        if epoch < 0:
+            alphaUsed = 0.0 # Prioritize cross entropy loss in start
+        else:
+            alphaUsed = alpha
+        print(f"Epoch {epoch} Alpha {alphaUsed}")
         average_loss, average_closs, average_sloss, average_scatter_between = train_episodic_epoch(entropyLossFunction, 
                                                                                                    few_shot_classifier, train_loader, 
                                                                                                    train_optimizer, slossFunc, 
-                                                                                                   alpha, cosine)
+                                                                                                   alphaUsed, cosine)
         validation_accuracy = evaluate(
             few_shot_classifier, val_loader, device=DEVICE, tqdm_prefix="Validation"
         )
@@ -375,8 +381,8 @@ if __name__=='__main__':
     parser.add_argument('--epochs', default=350, type=int) # epochs
     parser.add_argument('--m1', default=120, type=int) # learning rate scheduler for milstone 1 (epochs)
     parser.add_argument('--m2', default=190, type=int) # learning rate scheduler for rate milstone 2 (epochs)
-    parser.add_argument('--slossFunc', default='Multi') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean), multivariate (Multi)
-    parser.add_argument('--alpha', default=0.9, type=float) # alpha parameter for sloss function (0-1)
+    parser.add_argument('--slossFunc', default='Std') # scatter loss function with variance (Var), standard deviation (Std) or only mean (Mean), multivariate (Multi)
+    parser.add_argument('--alpha', default=1.0, type=float) # alpha parameter for sloss function (0-1)
     parser.add_argument('--pretrained', default='', type=bool) # default pretrained weigts is false
     parser.add_argument('--device', default='cpu') # training on cpu or cuda:0-3
     parser.add_argument('--tasks', default='200', type=int) # training tasks per epoch (*6 queries)
