@@ -3,8 +3,8 @@
 This project contains work in progrees with code for few-shot-learning with novelty detection. 
 
 The problem addressed with this research is to solve the extended few-shot learning problem with queries of images of both known and unknown images. 
-A support set contains N-classes (N-way) with each K-shots of images and a query set that contains Q images to be classified as classes inside or outside of the support set.
-An image in the query set that does not belong to any of the N classes in the support should be detected as a novelty. 
+A support set contains K-classes (K-way) with each N-shots of images and a query set that contains Q images to be classified as classes inside or outside of the support set.
+An image in the query set that does not belong to any of the K classes in the support should be detected as a novelty. 
  
 ## Python environment and installation 
 
@@ -85,7 +85,7 @@ With prepare/prepare_eu_moths.py it is possible to create another split of the E
 Episodic training for domain generalization is the problem of learning models that generalize to novel testing domains with different statistics and classes than in the set of the known training domain. 
 The method learns a model that generalizes well to a novel domain without any knowledge of the novel validation domain with new classes during episodic model training.
 It is also called the meta-learning paradigm, here we have a set of tasks to learn in each epoch. 
-Each task also called an episode contains a support set of N-classes (N-way) with a K-shot of images for each class. 
+Each task also called an episode contains a support set of K-classes (K-way) with a N-shot of images for each class. 
 A query set of images is matched with the support set using a few-shot Protypical network that compares the embeddings from the backbone of the convolutional neural network.
 The Prototypical network uses the Euclidian distance as a similarity function during training to find the best matching class in the support set. 
 Episodic training can be performed with and without pre-trained weights where the backbone in our experiments is ResNet18, ResNet34, or ResNet50.
@@ -142,11 +142,11 @@ To learn the Bayes threshold for detection of the novel class and test the model
 
 The LearnTestNoveltyModelAdv.py will take all models (*.pth) in the directory specified by --modelDir and perform the below operations.
 
-1. The Bayes threshold is learned with few-shot learning (N-way and 5-shot) on the validation dataset
-2. A few-shot with novelty is performed on the test dataset (N-way, 1-novelty and 5-shot)
-3. A few-shot without novelty is performed on the test dataset (N-way and 5-shot)
-4. A few-shot with novelty is performed on the test dataset (N-way, 1-novelty, and 1-shot)
-5. A few-shot without novelty is performed on the test dataset (N-way and 1-shot)
+1. The Bayes threshold is learned with few-shot learning (K-way and 5-shot) on the validation dataset
+2. A few-shot with novelty is performed on the test dataset (K-way, 1-novelty and 5-shot)
+3. A few-shot without novelty is performed on the test dataset (K-way and 5-shot)
+4. A few-shot with novelty is performed on the test dataset (K-way, 1-novelty, and 1-shot)
+5. A few-shot without novelty is performed on the test dataset (K-way and 1-shot)
 
 All results are stored in the folder results/test with the filenames *_learn.txt and *_text.txt
 
