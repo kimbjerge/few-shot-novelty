@@ -182,3 +182,11 @@ PlotNoveltyResultsAdv.py and PlotFewShotNoveltyResultsAdv.py are used to read an
 ## Legacy experiments 
 
 The folder experiments contain old code for preliminary experiments during the research for methods of training, learning, and testing of few-shot learning with novelty detection.
+
+## Develop version
+
+The folder develop contain a cleaned version that contains the FSNL code to perform episodic training, learning and testing with N-shot, M-novel and K-way support and query set.
+The datasets you would use for development needs to be copied or moved from ./data to ./develop/data
+
+1. FewShotTrainingAdvLoss.py contains the Python code for episodic training - default training on the Omniglot dataset
+2. LearnTestNoveltyModelMAdv.py contains code to learn threshold and test with M-novel and K-way classes 
