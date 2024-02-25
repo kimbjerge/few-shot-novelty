@@ -112,7 +112,7 @@ def evaluate_on_one_task_M_novel(
 
     if learn_th:
         # Learning threshold based FSL similarity distributions
-        correct_episodes = predictions[torch.max(predictions, 1)[1] == query_labels.cpu()]
+        correct_episodes = predictions[torch.max(predictions, 1)[1] == query_labels]
         correct_scores = correct_episodes.max(1)[0]
         correct_pred_idx = correct_episodes.max(1)[1]            
         
