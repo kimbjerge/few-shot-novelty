@@ -236,7 +236,7 @@ def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetw
     
     with open(modelName.replace('.pth', '.txt'), 'w') as f:
         line = "model,dataset,mode,cosine,epochs,m1,m2,slossFunc,alpha,pretrained,learnRate,device,trainTasks,"
-        line += "valTasks,batch,way,query,shot,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName\n"
+        line += "valTasks,way,query,shot,bestEpoch,valAccuracy,testAccuracy,meanBetween,trainLoss,modelName\n"
         f.write(line)
         line = args.model + ','
         line += args.dataset + ','
@@ -252,7 +252,6 @@ def saveArgs(modelName, args, best_epoch, valAccuracy, testAccuracy, scatterBetw
         line += args.device + ','
         line += str(args.tasks) + ',' 
         line += str(args.valTasks) + ','
-        line += str(args.batch) + ',' 
         line += str(args.way) + ','
         line += str(args.query) + ','
         line += str(args.shot) + ','
