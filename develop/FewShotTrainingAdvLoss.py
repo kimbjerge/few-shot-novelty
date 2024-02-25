@@ -272,7 +272,7 @@ if __name__=='__main__':
     parser.add_argument('--dataset', default='Omniglot') #euMoths, CUB, Omniglot (resnet12), mini_imagenet
     parser.add_argument('--mode', default='episodic') # episodic only (classic removed in this version)
     parser.add_argument('--cosine', default='', type=bool) # default use Euclidian distance when no parameter ''
-    parser.add_argument('--epochs', default=2, type=int) # epochs
+    parser.add_argument('--epochs', default=350, type=int) # epochs
     parser.add_argument('--m1', default=120, type=int) # learning rate scheduler for milstone 1 (epochs)
     parser.add_argument('--m2', default=190, type=int) # learning rate scheduler for rate milstone 2 (epochs)
     parser.add_argument('--slossFunc', default='Std') # scatter loss function with univariant using standard deviation (Std) or only mean (Mean), multivariate (Multi)
