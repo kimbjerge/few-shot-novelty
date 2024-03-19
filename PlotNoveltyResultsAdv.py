@@ -232,6 +232,39 @@ def plotScoresVsWays(data_df, fewShotClassifier, title, limits, Novelty=True, n_
     plt.legend(["FSL Acc.", "FSNL Acc.", "Precision", "Recall", "F1-Score"])
     plt.show()
     
+def plotFSLScoresVsWays(data_df, fewShotClassifiers, title, limits, Novelty=True, n_shot=n_shot):
+    
+    data_df_novelty = data_df.loc[data_df['Novelty'] == True]
+    
+    color1 = ['red', 'orange', 'yellow', 'pink']
+    color2 = ['blue', 'green', 'black', 'brown']
+    for i in range(len(fewShotClassifiers)):
+        data_df_novelty_i = data_df_novelty.loc[data_df_novelty['FewShotClassifier'] == fewShotClassifiers[i]]
+        data_df_novelty_i = data_df_novelty_i.loc[data_df_novelty_i['Shot'] == n_shot]
+        data_df_novelty_i['Way'] -= 1
+        
+        ax = plt.gca()
+        
+        data_df_novelty_i.plot.line(
+                    x='Way',
+                    y='Accuracy',
+                    color=color1[i], ax=ax)
+         
+        data_df_novelty_i.plot(kind='line',
+                    x='Way',
+                    y='F1',
+                    color=color2[i], ax=ax)
+        
+    plt.title(title)
+    plt.ylabel('Score')
+    plt.xlabel('K-way')
+    plt.ylim(limits) # Omniglot
+    #plt.xlim(0, 20)
+    plt.legend([fewShotClassifiers[0] + " Acc.", fewShotClassifiers[0] + " F1", fewShotClassifiers[1] + " Acc.", fewShotClassifiers[1] + " F1", 
+                fewShotClassifiers[2] + " Acc.", fewShotClassifiers[2] + " F1", fewShotClassifiers[3] + " Acc.", fewShotClassifiers[3] + " F1"])
+    plt.show()
+
+    
 def plotScoresVsNovelClasses(data_df, fewShotClassifier, title, limits, plot20ways=False, Novelty=True, n_shot=n_shot):
     
     data_df_novelty = data_df.loc[data_df['Novelty'] == True]
@@ -621,6 +654,21 @@ def plotTHSensitivity(fewShotClassifier):
     #plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "EU Moths threshold sensitity to M/K", (0.7, 1.0))
     plotTHSensitivityNovel(data_df_10, data_df_10_sense, fewShotClassifier, "", (0.7, 1.0))
 
+def plotWaysModels():
+
+    #fewShotClassifiers = ["Prototypical", "Simple",  "TIM", "BD-CSPN", "Finetune"]
+    fewShotClassifiers = ["Prototypical", "Finetune", "TIM", "BD-CSPN"]
+    data_df_10 = pd.read_csv("./modelsOmniglotAdvStd4/results-Nw/resnet12_Omniglot_10_novelty_ways_test_FSL5th.txt")
+    plotFSLScoresVsWays(data_df_10, fewShotClassifiers, "FSNL Omniglot (Alpha=1.0)", (0.5, 1.0))
+    #for fewShotClassifier in fewShotClassifiers:
+    #    plotScoresVsWays(data_df_10, fewShotClassifier, "Omniglot (5-Way,Alpha=1.0, " + fewShotClassifier + ")", (0.5, 1.0))
+    
+    data_df_10 = pd.read_csv("./modelsAlphaEUMoths/results-Nw/resnet18_euMoths_10_novelty_ways_test_FSL5th.txt")
+    plotFSLScoresVsWays(data_df_10, fewShotClassifiers, "FSNL EU Moths (Alpha=1.0)", (0.2, 1.0))
+    
+    #for fewShotClassifier in fewShotClassifiers:
+    #    plotScoresVsWays(data_df_10, fewShotClassifier, "EU Moths (5-Way,Alpha=1.0, " + fewShotClassifier + ")", (0.2, 1.0))
+    
 
 #%% MAIN
 if __name__=='__main__':
@@ -634,18 +682,20 @@ if __name__=='__main__':
     #plotWaysMultiOmniglot(fewShotClassifier)
     
     #plotWaysOmniglot(fewShotClassifier)  
-    plotNoveltiesOmniglot(fewShotClassifier)
+    #plotNoveltiesOmniglot(fewShotClassifier)
 
     #plotWaysEUMoths(fewShotClassifier)
     #plotWaysMultiEUMoths(fewShotClassifier)
     #fewShotClassifier = "BD-CSPN"
     
     #plotWaysEUMoths(fewShotClassifier)
-    plotNoveltiesEUMoths(fewShotClassifier)
+    #plotNoveltiesEUMoths(fewShotClassifier)
     
     #plotWaysMiniImagenet(fewShotClassifier)
 
     #plotWaysCUBs(fewShotClassifier)
 
-    plotTHSensitivity(fewShotClassifier)
+    #plotTHSensitivity(fewShotClassifier)
+
+    plotWaysModels()
     

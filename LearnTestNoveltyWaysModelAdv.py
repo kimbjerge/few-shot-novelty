@@ -167,6 +167,7 @@ if __name__=='__main__':
     parser.add_argument('--threshold', default='bayes') # bayes or std threshold to be used, only bayes are tested
     parser.add_argument('--alpha', default=0.0, type=float) # Use to select train file wiht alpha 
     parser.add_argument('--device', default='cpu') #cpu or cuda:0-3
+    parser.add_argument('--fslModel', default=0, type=int) # FSL model (0,1,2,3,4) (Prototypical, Simple, Finetuen, BD-CSPN, TIM) 
 
     # Theses arguments must not be changed and will be updated based on the model name
     parser.add_argument('--model', default='') #resnet12 (Omniglot), resnet18, resnet34, resnet50, Must be empty
@@ -270,12 +271,21 @@ if __name__=='__main__':
             
             novelty_th = 0.8  # Not used during learning  
             
-            few_shot_classifier = PrototypicalNetworksNovelty(model, use_normcorr=1).to(DEVICE)
+            few_shot_classifiers =  [ 
+                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)], # Cosine dist.
+                                     ["Simple", SimpleShot(model)],
+                                     ["Finetune", Finetune(model)], 
+                                     ["BD-CSPN", BDCSPN(model)], 
+                                     ["TIM", TIM(model)]
+                                    ]
+
+            few_shot_classifier = few_shot_classifiers[args.fslModel][1].to(DEVICE)
+
             accuracy, threshold, avg, std, avg_o, std_o  = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                          novelty_th, args.novelty, n_way, args.learning, 
                                                                          n_workers, None, DEVICE)
             
-            line = args.modelDir + ',' + modelName + ',' + "Prototypical" + ',' + str(n_way) + ','  
+            line = args.modelDir + ',' + modelName + ',' + few_shot_classifiers[args.fslModel][0] + ',' + str(n_way) + ','  
             line += str(n_shot) + ','  + str(n_query) + ',' + str(accuracy) + ',' 
             line += str(threshold) + ',' + str(avg) + ',' + str(std) + ',' + str(avg_o) + ',' + str(std_o) + ',' + str(abs(avg-avg_o)) + '\n'
             print(line)
@@ -303,27 +313,11 @@ if __name__=='__main__':
                 novelty_th = threshold # Use learned threshold
             else:
                 novelty_th = getLearnedThreshold(args.weights, args.model, args.shot)    
-
-            few_shot_classifiers =  [ 
-                                     # #["RelationNetworks", RelationNetworks(model, feature_dimension=3)], No
-                                     ["Prototypical", PrototypicalNetworksNovelty(model, use_normcorr=1)], # Cosine dist.
-                                     # ["PrototypicalNetworksNovelty", PrototypicalNetworksNovelty(model, use_normcorr=3)], - euclidian dist.
-                                     #["PrototypicalNetworks", PrototypicalNetworks(model)], # No
-                                     #["MatchingNetworks", MatchingNetworks(model, feature_dimension=feat_dim)], No - special
-                                     #["TransductiveFinetuning", TransductiveFinetuning(model)],  No - l2
-                                     #["SimpleShot", SimpleShot(model)], No - too simple
-                                  #   ["Finetune", Finetune(model)], 
-                                     # #["FEAT", FEAT(model)], - error few-shot and novelty
-                                     ["BD-CSPN", BDCSPN(model)], 
-                                     #["LaplacianShot", LaplacianShot(model)], No - special
-                                  # #["PT-MAP", PTMAP(model)], No
-                                  #   ["TIM", TIM(model)]
-                                    ]
                 
             test_set = load_test_dataset(args.dataset, args.learning)
             
             #for n_shot in [5, 1]: # Test with 5 and 1 shot               
-            for n_shot in [5]: # Test with 5 and 1 shot               
+            for n_shot in [5, 1]: # Test with 5 and 1 shot               
                 for use_novelty in [True, False]: # Test with and without novelty
                     args.novelty = use_novelty
                     if args.novelty:
@@ -335,23 +329,23 @@ if __name__=='__main__':
                         test_set, n_way=n_way, n_shot=n_shot, n_query=n_query, n_tasks=n_test_tasks
                     )
                                       
-                    for few_shot in few_shot_classifiers:
-                        print(few_shot[0])
-                        print("Use softmax", few_shot[1].use_softmax)
-                        few_shot_classifier = few_shot[1].to(DEVICE)
-                        metric = Metrics()
-                        accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
+                    few_shot = few_shot_classifiers[args.fslModel]
+                    print(few_shot[0])
+                    print("Use softmax", few_shot[1].use_softmax)
+                    few_shot_classifier = few_shot[1].to(DEVICE)
+                    metric = Metrics()
+                    accuracy, threshold, avg, std, avg_o, std_o = test_or_learn(test_set, test_sampler, few_shot_classifier, 
                                                                                     novelty_th, args.novelty, n_way, args.learning, 
                                                                                     n_workers, metric, DEVICE)
                         
-                        line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(args.novelty) + ',' 
-                        line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
-                        line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
-                        line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
-                        line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
-                        print(line)
-                        resFile.write(line)    
-                        resFile.flush()
+                    line = args.modelDir + ',' + args.model + ',' + few_shot[0] + ',' + str(args.novelty) + ',' 
+                    line += str(n_way) + ','  + str(n_shot) + ','  + str(n_query) + ',' 
+                    line += str(accuracy) + ',' + str(metric.precision())  + ',' + str(metric.recall()) + ',' + str(metric.f1score()) + ','
+                    line += str(metric.TP()) + ',' + str(metric.FP()) + ',' + str(metric.FN()) + ','
+                    line += args.threshold + ',' + str(threshold) + ',' + str(args.alpha) + ',' + args.modelDir + '/' + modelName +  '\n'
+                    print(line)
+                    resFile.write(line)    
+                    resFile.flush()
                     
             resFile.close()
             print("Result saved to", resFileName)
