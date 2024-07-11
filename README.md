@@ -1,4 +1,4 @@
-# Few-shot-novelty
+# Few-shot novelty learning (FSNL)
 
 This project contains code for Few Shot Learning with Novelty Detection. 
 Our work is presented in the paper: 
