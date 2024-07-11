@@ -1,10 +1,15 @@
 # Few-shot-novelty
 
-This project contains work in progrees with code for few-shot-learning with novelty detection. 
+This project contains code for Few Shot Learning with Novelty Detection. 
+Our work is presented in the paper: 
+Kim Bjerge, Paul Bodensheim and Henrik Karstoft, Few Shot Learning with Novelty Detection, 2024, 5th International Conference on Deep Learning Theory and Applications, Dijon, France
+
+See link to abstract of paper: https://www.insticc.org/node/TechnicalProgram/delta/2024/presentationDetails/127876
+Link to slides of conference presentation: https://drive.google.com/file/d/1c9W6mXf2U5imW_emDJw-pnAKdoxrRzft/view?usp=drive_link
 
 The problem addressed with this research is to solve the extended few-shot learning problem with queries of images of both known and unknown images. 
 A support set contains K-classes (K-way) with each N-shots of images and a query set that contains Q images to be classified as classes inside or outside of the support set.
-An image in the query set that does not belong to any of the K classes in the support should be detected as a novelty. 
+An image in the query set that does not belong to any of the K classes in the support should be detected as a novelty (M-novel). 
  
 ## Python environment and installation 
 
