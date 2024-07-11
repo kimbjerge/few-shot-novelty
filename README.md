@@ -2,9 +2,11 @@
 
 This project contains code for Few Shot Learning with Novelty Detection. 
 Our work is presented in the paper: 
+
 Kim Bjerge, Paul Bodensheim and Henrik Karstoft, Few Shot Learning with Novelty Detection, 2024, 5th International Conference on Deep Learning Theory and Applications, Dijon, France
 
 See link to abstract of paper: https://www.insticc.org/node/TechnicalProgram/delta/2024/presentationDetails/127876
+
 Link to slides of conference presentation: https://drive.google.com/file/d/1c9W6mXf2U5imW_emDJw-pnAKdoxrRzft/view?usp=drive_link
 
 The problem addressed with this research is to solve the extended few-shot learning problem with queries of images of both known and unknown images. 
